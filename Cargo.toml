@@ -4,7 +4,7 @@ authors = ["Andrew Ward (andy.ward.uk@gmail.com)"]
 
 [workspace]
 
-members = ["aocinput"]
+members = ["aocinput", "day01"]
 
 [profile.release]
 debug = true
