@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "aocinput"
+name = "aoc"
 version = "0.1.0"
 dependencies = [
  "memmap2",
@@ -13,7 +13,7 @@ dependencies = [
 name = "day01"
 version = "0.1.0"
 dependencies = [
- "aocinput",
+ "aoc",
 ]
 
 [[package]]

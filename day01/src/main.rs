@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use aocinput::Input;
+use aoc::Input;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
@@ -42,8 +42,10 @@ fn part2(input: &Vec<u64>) {
     let mut totals: Vec<u64> = Vec::new();
 
     let mut proc = |tot: &mut u64| {
-        totals.push(*tot);
-        *tot = 0;
+        if *tot > 0 {
+            totals.push(*tot);
+            *tot = 0;
+        }
     };
 
     for cal in input {

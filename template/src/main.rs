@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use aocinput::Input;
+use aoc::Input;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
