@@ -1,13 +1,10 @@
-use std::{
-    error::Error,
-    io::{BufReader, Lines},
-};
+use std::error::Error;
 
-use aoc::Input;
+use aoc::parse_input_vec;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
-    let input = get_input(2)?;
+    let input = parse_input_vec(2, input_transform)?;
 
     // Run parts
     println!("Part 1: {}", part1(&input));
@@ -122,29 +119,15 @@ impl PlayResult {
 
 type InputEnt = (Play, Play, PlayResult);
 
-fn get_input(day: usize) -> Result<Vec<InputEnt>, Box<dyn Error>> {
-    let input = Input::new(day)?;
+fn input_transform(line: String) -> InputEnt {
+    let chars = line.chars().collect::<Vec<char>>();
 
-    parse_input(input.lines())
-}
-
-fn parse_input(lines: Lines<BufReader<&[u8]>>) -> Result<Vec<InputEnt>, Box<dyn Error>> {
-    let mut result = Vec::new();
-
-    for l in lines {
-        let line = l?;
-
-        let chars = line.chars().collect::<Vec<char>>();
-
-        result.push((chars[0].into(), chars[2].into(), chars[2].into()));
-    }
-
-    Ok(result)
+    (chars[0].into(), chars[2].into(), chars[2].into())
 }
 
 #[cfg(test)]
 mod tests {
-    use aoc::test_input;
+    use aoc::parse_test_vec;
 
     use super::*;
 
@@ -152,7 +135,7 @@ mod tests {
 
     #[test]
     fn test1() {
-        let input = parse_input(test_input(EXAMPLE1)).unwrap();
+        let input = parse_test_vec(EXAMPLE1, input_transform).unwrap();
         assert_eq!(part1(&input), 15);
         assert_eq!(part2(&input), 12);
     }

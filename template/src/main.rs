@@ -1,13 +1,10 @@
-use std::{
-    error::Error,
-    io::{BufReader, Lines},
-};
+use std::error::Error;
 
-use aoc::Input;
+use aoc::parse_input_vec;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
-    let input = get_input($day)?;
+    let input = parse_input_vec($day, input_transform)?;
 
     // Run parts
     println!("Part 1: {}", part1(&input));
@@ -28,30 +25,14 @@ fn part2(input: &[InputEnt]) -> u64 {
 
 type InputEnt = String; // TODO
 
-fn get_input(day: usize) -> Result<Vec<InputEnt>, Box<dyn Error>> {
-    let input = Input::new(day)?;
-
-    parse_input(input.lines())
-}
-
-fn parse_input(lines: Lines<BufReader<&[u8]>>) -> Result<Vec<InputEnt>, Box<dyn Error>> {
-    let mut result = Vec::new();
-
-    for l in lines {
-        let line = l?;
-
-        // TODO process line to InputEnt
-        let ent = line;
-
-        result.push(ent);
-    }
-
-    Ok(result)
+fn input_transform(line: String) -> InputEnt {
+    // TODO
+    line
 }
 
 #[cfg(test)]
 mod tests {
-    use aoc::test_input;
+    use aoc::parse_test_vec;
 
     use super::*;
 
@@ -59,7 +40,7 @@ mod tests {
 
     #[test]
     fn test1() {
-        let input = parse_input(test_input(EXAMPLE1)).unwrap();
+        let input = parse_test_vec(EXAMPLE1, input_transform).unwrap();
         assert_eq!(part1(&input), 0 /* TODO */);
         assert_eq!(part2(&input), 0 /* TODO */);
     }
