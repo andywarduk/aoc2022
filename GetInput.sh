@@ -5,7 +5,8 @@ if [ $1 -lt 1 -o $1 -gt 25 ]; then
 	exit 1
 fi
 
-daypad="$(printf %02d $1)"
+day=$1
+daypad="$(printf %02d $day)"
 
 token="$(cat token.txt)"
 if [ "x$token" == "x" ]; then

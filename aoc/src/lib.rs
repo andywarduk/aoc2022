@@ -25,3 +25,8 @@ impl Input {
         buf_reader.lines()
     }
 }
+
+pub fn test_input(input: &str) -> Lines<BufReader<&[u8]>> {
+    let buf = BufReader::new(input.as_bytes());
+    buf.lines()
+}
