@@ -4,7 +4,7 @@ authors = ["Andrew Ward (andy.ward.uk@gmail.com)"]
 
 [workspace]
 
-members = ["aoc", "day01", "day02"]
+members = ["aoc", "day01", "day02", "day03"]
 
 [profile.release]
 debug = true
