@@ -4,46 +4,62 @@ use aoc::parse_input_vec;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
-    let (stack, moves) = get_input(parse_input_vec(5, input_transform)?)?;
+    let (stacks, moves) = get_input(parse_input_vec(5, input_transform)?)?;
 
     // Run parts
-    println!("Part 1: {}", part1(stack.clone(), &moves));
-    println!("Part 2: {}", part2(stack.clone(), &moves));
+    println!("Part 1: {}", part1(stacks.clone(), &moves));
+    println!("Part 2: {}", part2(stacks, &moves));
 
     Ok(())
 }
 
-fn part1(mut stack: Stack, moves: &[Move]) -> String {
-    for m in moves {
-        for _ in 0..m.count {
-            let item = stack.0[m.from].pop().unwrap();
-            stack.0[m.to].push(item);
+fn part1(mut stacks: Stacks, moves: &[Move]) -> String {
+    for mv in moves {
+        stacks.move_lifo(mv);
+    }
+
+    stacks.top_boxes()
+}
+
+fn part2(mut stacks: Stacks, moves: &[Move]) -> String {
+    for mv in moves {
+        stacks.move_chunk(mv);
+    }
+
+    stacks.top_boxes()
+}
+
+#[derive(Clone)]
+struct Stacks {
+    stacks: Vec<Vec<char>>,
+}
+
+impl Stacks {
+    fn top_boxes(&self) -> String {
+        self.stacks.iter().map(|s| s.last().unwrap()).collect()
+    }
+
+    fn move_lifo(&mut self, mv: &Move) {
+        for _ in 0..mv.count {
+            let item = self.stacks[mv.from].pop().unwrap();
+            self.stacks[mv.to].push(item);
         }
     }
 
-    stack
-        .0
-        .iter()
-        .map(|s| s.last().unwrap())
-        .collect::<String>()
-}
-
-fn part2(mut stack: Stack, moves: &[Move]) -> String {
-    for m in moves {
-        let pos = stack.0[m.from].len() - m.count;
-        let mut items = stack.0[m.from].split_off(pos);
-        stack.0[m.to].append(&mut items);
+    fn move_chunk(&mut self, mv: &Move) {
+        let pos = self.stacks[mv.from].len() - mv.count;
+        let mut items = self.stacks[mv.from].split_off(pos);
+        self.stacks[mv.to].append(&mut items);
     }
-
-    stack
-        .0
-        .iter()
-        .map(|s| s.last().unwrap())
-        .collect::<String>()
 }
 
-#[derive(Clone, Debug)]
-struct Stack(Vec<Vec<char>>);
+impl From<Vec<VecDeque<char>>> for Stacks {
+    fn from(vvdq: Vec<VecDeque<char>>) -> Self {
+        Self {
+            stacks: vvdq.into_iter().map(Vec::from).collect(),
+        }
+    }
+}
 
 #[derive(Debug)]
 struct Move {
@@ -54,47 +70,52 @@ struct Move {
 
 // Input parsing
 
-fn get_input(lines: Vec<InputEnt>) -> Result<(Stack, Vec<Move>), Box<dyn Error>> {
-    let mut stack = Vec::new();
-    let mut moves = Vec::new();
-
-    let elems = (lines.first().unwrap().len() + 3) / 4;
-
-    for _ in 0..elems {
-        stack.push(VecDeque::new());
-    }
-
-    for line in lines {
-        if line.trim_start().starts_with('[') {
-            let chars: Vec<char> = line.chars().collect();
-
-            let mut idx = 1;
-            for i in 0..elems {
-                if chars[idx] != ' ' {
-                    stack[i].push_front(chars[idx]);
+fn get_input(lines: Vec<InputEnt>) -> Result<(Stacks, Vec<Move>), Box<dyn Error>> {
+    let (stacks, moves) = lines.into_iter().fold(
+        (Vec::new(), Vec::new()),
+        |(mut stacks, mut moves), line| match line {
+            InputEnt::StackLine(s) => {
+                for (i, c) in s.iter().enumerate() {
+                    if !c.is_ascii_whitespace() {
+                        while stacks.len() < i + 1 {
+                            stacks.push(VecDeque::new())
+                        }
+                        stacks[i].push_front(*c)
+                    }
                 }
-                idx += 4;
+                (stacks, moves)
             }
-        } else if line.starts_with("move") {
-            let split: Vec<&str> = line.split_ascii_whitespace().collect();
+            InputEnt::MoveLine(m) => {
+                moves.push(m);
+                (stacks, moves)
+            }
+            _ => (stacks, moves),
+        },
+    );
 
-            moves.push(Move {
-                count: split[1].parse::<usize>()?,
-                from: split[3].parse::<usize>()? - 1,
-                to: split[5].parse::<usize>()? - 1,
-            })
-        }
-    }
-
-    let stack = stack.into_iter().map(Vec::from).collect();
-
-    Ok((Stack(stack), moves))
+    Ok((stacks.into(), moves))
 }
 
-type InputEnt = String;
+enum InputEnt {
+    StackLine(Vec<char>),
+    MoveLine(Move),
+    Ignore,
+}
 
 fn input_transform(line: String) -> InputEnt {
-    line
+    if line.trim_start().starts_with('[') {
+        InputEnt::StackLine(line.chars().skip(1).step_by(4).collect())
+    } else if line.starts_with("move") {
+        let split: Vec<&str> = line.split_ascii_whitespace().collect();
+
+        InputEnt::MoveLine(Move {
+            count: split[1].parse::<usize>().unwrap(),
+            from: split[3].parse::<usize>().unwrap() - 1,
+            to: split[5].parse::<usize>().unwrap() - 1,
+        })
+    } else {
+        InputEnt::Ignore
+    }
 }
 
 #[cfg(test)]
@@ -116,8 +137,9 @@ move 1 from 1 to 2
 
     #[test]
     fn test1() {
-        let (stack, moves) = get_input(parse_test_vec(EXAMPLE1, input_transform).unwrap()).unwrap();
-        assert_eq!(part1(stack.clone(), &moves), "CMZ");
-        assert_eq!(part2(stack.clone(), &moves), "MCD");
+        let (stacks, moves) =
+            get_input(parse_test_vec(EXAMPLE1, input_transform).unwrap()).unwrap();
+        assert_eq!(part1(stacks.clone(), &moves), "CMZ");
+        assert_eq!(part2(stacks, &moves), "MCD");
     }
 }
