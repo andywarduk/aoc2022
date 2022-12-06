@@ -22,6 +22,15 @@ where
     parse_buf_vec(buf.lines(), tfn)
 }
 
+/// Parse an input file with a single line with a given transform
+pub fn parse_input_line<T, F>(day: usize, tfn: F) -> Result<T, Box<dyn Error>>
+where
+    F: FnMut(String) -> T,
+{
+    let input = Input::new(day)?;
+    parse_buf_line(input.lines(), tfn)
+}
+
 /// Memory mapped input
 struct Input {
     mmap: Mmap,
@@ -59,4 +68,14 @@ where
     }
 
     Ok(result)
+}
+
+/// Parse the first line of a line iterator with a given transform
+fn parse_buf_line<T, F>(mut lines: Lines<BufReader<&[u8]>>, mut tfn: F) -> Result<T, Box<dyn Error>>
+where
+    F: FnMut(String) -> T,
+{
+    let line = lines.next().expect("No line found in input")?;
+
+    Ok(tfn(line))
 }

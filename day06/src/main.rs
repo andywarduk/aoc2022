@@ -1,14 +1,14 @@
 use std::{collections::HashSet, error::Error};
 
-use aoc::parse_input_vec;
+use aoc::parse_input_line;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
-    let input = parse_input_vec(6, input_transform)?;
+    let input = parse_input_line(6, input_transform)?;
 
     // Run parts
-    println!("Part 1: {}", part1(&input[0]));
-    println!("Part 2: {}", part2(&input[0]));
+    println!("Part 1: {}", part1(&input));
+    println!("Part 2: {}", part2(&input));
 
     Ok(())
 }
@@ -33,9 +33,7 @@ fn find_unique(input: &[char], window: usize) -> usize {
 
 // Input parsing
 
-type InputEnt = Vec<char>;
-
-fn input_transform(line: String) -> InputEnt {
+fn input_transform(line: String) -> Vec<char> {
     line.chars().collect()
 }
 
