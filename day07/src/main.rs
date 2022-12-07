@@ -25,31 +25,20 @@ struct Dir {
 }
 
 fn part1(tree: &HashMap<String, Dir>) -> usize {
-    let mut total_size = 0;
-
-    for (_, d) in tree.iter() {
-        if d.size <= 100_000 {
-            total_size += d.size;
-        }
-    }
-
-    total_size
+    tree.values()
+        .filter_map(|d| if d.size < 100_000 { Some(d.size) } else { None })
+        .sum()
 }
 
 fn part2(tree: &HashMap<String, Dir>) -> usize {
     let total = tree.get("").unwrap().size;
-
     let cur_free = TOTAL_SPACE - total;
-
     let to_free = NEEDED_SPACE - cur_free;
 
-    let free_amount = tree
-        .values()
+    tree.values()
         .filter_map(|d| if d.size > to_free { Some(d.size) } else { None })
         .min()
-        .unwrap();
-
-    free_amount
+        .unwrap()
 }
 
 fn build_tree(input: &[InputEnt]) -> HashMap<String, Dir> {
