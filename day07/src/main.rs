@@ -2,123 +2,95 @@ use std::{collections::HashMap, error::Error};
 
 use aoc::parse_input_vec;
 
+const TOTAL_SPACE: usize = 70_000_000;
+const NEEDED_SPACE: usize = 30_000_000;
+
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
     let input = parse_input_vec(7, input_transform)?;
 
+    // Build file system tree
+    let tree = build_tree(&input);
+
     // Run parts
-    println!("Part 1: {}", part1(&input));
-    println!("Part 2: {}", part2(&input));
+    println!("Part 1: {}", part1(&tree));
+    println!("Part 2: {}", part2(&tree));
 
     Ok(())
 }
 
 #[derive(Debug, Default)]
 struct Dir {
-    files: Vec<File>,
-    dirs: Vec<String>,
-}
-
-#[derive(Debug, Default)]
-struct File {
-    name: String,
     size: usize,
 }
 
-fn part1(input: &[InputEnt]) -> usize {
-    let tree = build_tree(input);
-
+fn part1(tree: &HashMap<String, Dir>) -> usize {
     let mut total_size = 0;
 
     for (_, d) in tree.iter() {
-        let size = dir_size(&tree, d);
-
-        if size <= 100_000 {
-            total_size += size;
+        if d.size <= 100_000 {
+            total_size += d.size;
         }
     }
 
     total_size
 }
 
-fn part2(input: &[InputEnt]) -> usize {
-    let tree = build_tree(input);
+fn part2(tree: &HashMap<String, Dir>) -> usize {
+    let total = tree.get("").unwrap().size;
 
-    let sizes: Vec<usize> = tree.values().map(|d| dir_size(&tree, d)).collect();
+    let cur_free = TOTAL_SPACE - total;
 
-    let total = sizes.iter().max().unwrap();
+    let to_free = NEEDED_SPACE - cur_free;
 
-    let cur_free = 70_000_000 - total;
+    let free_amount = tree
+        .values()
+        .filter_map(|d| if d.size > to_free { Some(d.size) } else { None })
+        .min()
+        .unwrap();
 
-    let to_free = 30_000_000 - cur_free;
-
-    let free_amount = sizes.iter().filter(|s| **s > to_free).min().unwrap();
-
-    *free_amount
+    free_amount
 }
 
 fn build_tree(input: &[InputEnt]) -> HashMap<String, Dir> {
     let mut cwd = "".to_string();
 
     let mut tree: HashMap<String, Dir> = HashMap::new();
-
     tree.insert(cwd.clone(), Default::default());
 
     for item in input {
         match item {
-            InputEnt::Command(cmd) => {
-                let mut split = cmd.split_whitespace();
-
-                match split.next() {
-                    Some(exec) => match exec {
-                        "cd" => {
-                            let to = split.next().unwrap();
-                            match to {
-                                ".." => match cwd.rfind('/') {
-                                    None => cwd = "".to_string(),
-                                    Some(p) => cwd.truncate(p),
-                                },
-                                "/" => cwd = "".to_string(),
-                                _ => {
-                                    if cwd.is_empty() {
-                                        cwd = to.to_string();
-                                    } else {
-                                        cwd = format!("{cwd}/{to}");
-                                    }
-                                }
-                            }
-                        }
-                        "ls" => {}
-                        _ => panic!("Unrecognised command"),
-                    },
-                    None => panic!("No command found"),
+            InputEnt::CommandCdRoot => cwd = "".to_string(),
+            InputEnt::CommandCdUp => cwd.truncate(cwd.rfind('/').unwrap_or(0)),
+            InputEnt::CommandCd(to) => {
+                if cwd.is_empty() {
+                    cwd = to.to_string();
+                } else {
+                    cwd = format!("{cwd}/{to}");
                 }
             }
-            InputEnt::Output(line) => {
-                let mut split = line.split_whitespace();
+            InputEnt::CommandLs => {}
+            InputEnt::OutputDir(dir) => {
+                let path = if cwd.is_empty() {
+                    dir.to_string()
+                } else {
+                    format!("{cwd}/{dir}")
+                };
 
-                let first = split.next().unwrap();
-                match first {
-                    "dir" => {
-                        let subdir = split.next().unwrap();
-                        let path = if cwd.is_empty() {
-                            subdir.to_string()
-                        } else {
-                            format!("{cwd}/{subdir}")
-                        };
-                        let d = tree.get_mut(&cwd).unwrap();
-                        d.dirs.push(path.clone());
-                        tree.insert(path, Default::default());
+                tree.insert(path, Default::default());
+            }
+            InputEnt::OutputFile(size) => {
+                let mut dir = cwd.clone();
+
+                loop {
+                    let d = tree.get_mut(&dir).unwrap();
+                    d.size += size;
+
+                    if dir.is_empty() {
+                        break;
                     }
-                    _ => {
-                        let size = first.parse::<usize>().unwrap();
-                        let file = split.next().unwrap();
-                        let d = tree.get_mut(&cwd).unwrap();
-                        d.files.push(File {
-                            name: file.to_string(),
-                            size,
-                        })
-                    }
+
+                    dir.truncate(dir.rfind('/').unwrap_or(0));
                 }
             }
         }
@@ -127,34 +99,32 @@ fn build_tree(input: &[InputEnt]) -> HashMap<String, Dir> {
     tree
 }
 
-fn dir_size(tree: &HashMap<String, Dir>, dir: &Dir) -> usize {
-    // Sum files
-    let file_sum: usize = dir.files.iter().map(|f| f.size).sum();
-
-    let dir_sum: usize = dir
-        .dirs
-        .iter()
-        .map(|d| {
-            let sub_dir = tree.get(d).unwrap();
-            dir_size(tree, sub_dir)
-        })
-        .sum();
-
-    file_sum + dir_sum
-}
-
 // Input parsing
 
 enum InputEnt {
-    Command(String),
-    Output(String),
+    CommandCdRoot,
+    CommandCdUp,
+    CommandCd(String),
+    CommandLs,
+    OutputDir(String),
+    OutputFile(usize),
 }
 
 fn input_transform(line: String) -> InputEnt {
-    if line.starts_with('$') {
-        InputEnt::Command(line[2..].to_string())
-    } else {
-        InputEnt::Output(line)
+    let mut split = line.split_whitespace();
+
+    match split.next().unwrap() {
+        "$" => match split.next().unwrap() {
+            "cd" => match split.next().unwrap() {
+                ".." => InputEnt::CommandCdUp,
+                "/" => InputEnt::CommandCdRoot,
+                x => InputEnt::CommandCd(x.to_string()),
+            },
+            "ls" => InputEnt::CommandLs,
+            x => panic!("Unknown command {x}"),
+        },
+        "dir" => InputEnt::OutputDir(split.next().unwrap().to_string()),
+        x => InputEnt::OutputFile(x.parse::<usize>().unwrap()),
     }
 }
 
@@ -192,7 +162,8 @@ $ ls
     #[test]
     fn test1() {
         let input = parse_test_vec(EXAMPLE1, input_transform).unwrap();
-        assert_eq!(part1(&input), 95437);
-        assert_eq!(part2(&input), 24933642);
+        let tree = build_tree(&input);
+        assert_eq!(part1(&tree), 95437);
+        assert_eq!(part2(&tree), 24933642);
     }
 }
