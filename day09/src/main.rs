@@ -14,61 +14,41 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn part1(input: &[Instruction]) -> usize {
-    let mut hpos = Pos::default();
-    let mut tpos = Pos::default();
-
-    let mut tpositions = HashSet::new();
-
-    tpositions.insert(tpos.clone());
-
-    for i in input {
-        let (amt, delta) = i.move_delta();
-
-        for _ in 0..amt {
-            hpos.apply(&delta);
-            tpos.move_toward(&hpos);
-            tpositions.insert(tpos.clone());
-        }
-    }
-
-    tpositions.len()
+    move_rope(input, 1)
 }
 
-const TAIL: usize = 9;
-
 fn part2(input: &[Instruction]) -> usize {
-    let mut pos: Vec<Pos> = vec![Pos::default(); TAIL + 1];
+    move_rope(input, 9)
+}
 
+fn move_rope(input: &[Instruction], tail_cnt: usize) -> usize {
+    let mut pos = vec![Pos::default(); tail_cnt + 1];
     let mut tailpositions = HashSet::new();
 
-    tailpositions.insert(pos[TAIL]);
+    tailpositions.insert(pos[tail_cnt]);
 
-    for i in input {
-        let (amt, delta) = i.move_delta();
-
-        for _ in 0..amt {
-            let mut new_pos = Vec::with_capacity(TAIL);
-
-            for j in 0..=TAIL {
+    for (amt, delta) in input {
+        for _ in 0..*amt {
+            for j in 0..=tail_cnt {
                 let mut elem = pos[j];
 
                 if j == 0 {
-                    elem.apply(&delta);
+                    elem.apply_delta(delta);
                 } else {
-                    elem.move_toward(&new_pos[j - 1]);
+                    elem.move_toward(&pos[j - 1]);
                 }
 
-                new_pos.push(elem);
+                pos[j] = elem;
             }
 
-            pos = new_pos;
-
-            tailpositions.insert(pos[TAIL]);
+            tailpositions.insert(pos[tail_cnt]);
         }
     }
 
     tailpositions.len()
 }
+
+type Delta = (isize, isize);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 struct Pos {
@@ -77,74 +57,35 @@ struct Pos {
 }
 
 impl Pos {
-    fn apply(&mut self, delta: &Delta) {
-        self.x += delta.x_add;
-        self.y += delta.y_add;
+    fn apply_delta(&mut self, delta: &Delta) {
+        self.x += delta.0;
+        self.y += delta.1;
     }
 
     fn move_toward(&mut self, other: &Pos) {
         let x_diff = other.x - self.x;
         let y_diff = other.y - self.y;
+
         let ax_diff = x_diff.abs();
         let ay_diff = y_diff.abs();
 
-        let mut diag = || {
+        if (ax_diff == 2 && ay_diff != 0) || (ay_diff == 2 && ax_diff != 0) {
+            // Diagonal move
             self.x += x_diff.signum();
             self.y += y_diff.signum();
-        };
-
-        if ax_diff == 2 {
-            if ay_diff != 0 {
-                // Diagonal move
-                diag()
-            } else {
-                // Straight move
-                self.x += x_diff.signum();
-            }
+        } else if ax_diff == 2 {
+            // Straight move along x
+            self.x += x_diff.signum();
         } else if ay_diff == 2 {
-            if ax_diff != 0 {
-                // Diagonal move
-                diag()
-            } else {
-                // Straight move
-                self.y += y_diff.signum();
-            }
+            // Straight move along y
+            self.y += y_diff.signum();
         }
-    }
-}
-
-struct Delta {
-    x_add: isize,
-    y_add: isize,
-}
-
-impl Delta {
-    fn new(x_add: isize, y_add: isize) -> Self {
-        Self { x_add, y_add }
     }
 }
 
 // Input parsing
 
-enum Instruction {
-    Up(u32),
-    Down(u32),
-    Left(u32),
-    Right(u32),
-}
-
-impl Instruction {
-    fn move_delta(&self) -> (u32, Delta) {
-        use Instruction::*;
-
-        match self {
-            Up(amt) => (*amt, Delta::new(0, -1)),
-            Down(amt) => (*amt, Delta::new(0, 1)),
-            Left(amt) => (*amt, Delta::new(-1, 0)),
-            Right(amt) => (*amt, Delta::new(1, 0)),
-        }
-    }
-}
+type Instruction = (u32, Delta);
 
 fn input_transform(line: String) -> Instruction {
     let split: Vec<&str> = line.split_whitespace().collect();
@@ -152,10 +93,10 @@ fn input_transform(line: String) -> Instruction {
     let amt = split[1].parse::<u32>().unwrap();
 
     match split[0] {
-        "U" => Instruction::Up(amt),
-        "D" => Instruction::Down(amt),
-        "L" => Instruction::Left(amt),
-        "R" => Instruction::Right(amt),
+        "U" => (amt, (0, -1)),
+        "D" => (amt, (0, 1)),
+        "L" => (amt, (-1, 0)),
+        "R" => (amt, (1, 0)),
         _ => panic!("Unknown instruction {line}"),
     }
 }
