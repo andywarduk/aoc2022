@@ -13,6 +13,15 @@ where
     parse_buf_vec(input.lines(), tfn)
 }
 
+/// Parse an input file with a single line with a given transform
+pub fn parse_input_line<T, F>(day: usize, tfn: F) -> Result<T, Box<dyn Error>>
+where
+    F: FnMut(String) -> T,
+{
+    let input = Input::new(day)?;
+    parse_buf_line(input.lines(), tfn)
+}
+
 /// Parse an input string to a vector with a given transform
 pub fn parse_test_vec<T, F>(test: &str, tfn: F) -> Result<Vec<T>, Box<dyn Error>>
 where
@@ -22,13 +31,17 @@ where
     parse_buf_vec(buf.lines(), tfn)
 }
 
-/// Parse an input file with a single line with a given transform
-pub fn parse_input_line<T, F>(day: usize, tfn: F) -> Result<T, Box<dyn Error>>
+/// Parse an test input file to a vector with a given transform
+pub fn parse_test_input_vec<T, F>(
+    day: usize,
+    example: usize,
+    tfn: F,
+) -> Result<Vec<T>, Box<dyn Error>>
 where
     F: FnMut(String) -> T,
 {
-    let input = Input::new(day)?;
-    parse_buf_line(input.lines(), tfn)
+    let input = Input::new_example(day, example)?;
+    parse_buf_vec(input.lines(), tfn)
 }
 
 /// Memory mapped input
@@ -39,12 +52,29 @@ struct Input {
 impl Input {
     fn new(day: usize) -> Result<Self, Box<dyn Error>> {
         // Open the file
-        let file = File::open(format!("inputs/day{:02}.txt", day))?;
+        let file = Self::open(&format!("day{day:02}.txt"))?;
 
         // Memory map it
         let mmap = unsafe { Mmap::map(&file)? };
 
         Ok(Self { mmap })
+    }
+
+    fn new_example(day: usize, example: usize) -> Result<Self, Box<dyn Error>> {
+        // Open the file
+        let file = Self::open(&format!("example{day:02}-{example}.txt"))?;
+
+        // Memory map it
+        let mmap = unsafe { Mmap::map(&file)? };
+
+        Ok(Self { mmap })
+    }
+
+    fn open(file: &str) -> std::io::Result<File> {
+        match File::open(format!("inputs/{file}")) {
+            Err(_) => File::open(format!("../inputs/{file}")),
+            f => f,
+        }
     }
 
     fn lines(&self) -> Lines<BufReader<&[u8]>> {
