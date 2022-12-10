@@ -45,7 +45,7 @@ fn input_transform(line: String) -> InputEnt {
         .map(|c| match c {
             'a'..='z' => c as u8 - b'a' + 1,
             'A'..='Z' => c as u8 - b'A' + 27,
-            _ => panic!("Unexpected character {}", c),
+            _ => panic!("Unexpected character {c}"),
         })
         .collect::<Vec<u8>>()
 }

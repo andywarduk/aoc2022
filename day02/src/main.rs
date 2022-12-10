@@ -63,7 +63,7 @@ impl From<char> for Play {
             'A' | 'X' => Play::Rock,
             'B' | 'Y' => Play::Paper,
             'C' | 'Z' => Play::Scissors,
-            _ => panic!("Unknown play {}", pchar),
+            _ => panic!("Unknown play {pchar}"),
         }
     }
 }
@@ -80,7 +80,7 @@ impl From<char> for PlayResult {
             'A' | 'X' => PlayResult::Lose,
             'B' | 'Y' => PlayResult::Draw,
             'C' | 'Z' => PlayResult::Win,
-            _ => panic!("Unknown play {}", pchar),
+            _ => panic!("Unknown play {pchar}"),
         }
     }
 }
