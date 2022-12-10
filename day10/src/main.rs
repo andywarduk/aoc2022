@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use aoc::parse_input_vec;
-use cpu::{Cpu, TickAction};
+use cpu::Cpu;
 
 mod cpu;
 
@@ -15,6 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Part 1: {}", part1(&input));
 
     println!("Part 2:");
+
     for line in part2(&input) {
         println!(
             "  {}",
@@ -32,14 +33,9 @@ fn part1(input: &[Instruction]) -> isize {
     let mut cpu = Cpu::new(input);
     let mut strength: isize = 0;
 
-    loop {
-        match cpu.tick() {
-            TickAction::Halt => break,
-            TickAction::Executing => {
-                if (cpu.cycles() + 20) % 40 == 0 {
-                    strength += cpu.cycles() as isize * cpu.x_reg()
-                }
-            }
+    while cpu.tick() {
+        if (cpu.cycles() + 20) % 40 == 0 {
+            strength += cpu.cycles() as isize * cpu.x_reg()
         }
     }
 
@@ -52,25 +48,20 @@ fn part2(input: &[Instruction]) -> Vec<String> {
     let mut y = 0;
     let mut cpu = Cpu::new(input);
 
-    loop {
-        match cpu.tick() {
-            TickAction::Halt => break,
-            TickAction::Executing => {
-                let pos = cpu.x_reg();
+    while cpu.tick() {
+        let pos = cpu.x_reg();
 
-                output[y][x] = if x as isize >= pos - 1 && x as isize <= pos + 1 {
-                    '#'
-                } else {
-                    '.'
-                };
+        output[y][x] = if x as isize >= pos - 1 && x as isize <= pos + 1 {
+            '#'
+        } else {
+            '.'
+        };
 
-                x += 1;
+        x += 1;
 
-                if x == 40 {
-                    x = 0;
-                    y += 1;
-                }
-            }
+        if x == 40 {
+            x = 0;
+            y += 1;
         }
     }
 
