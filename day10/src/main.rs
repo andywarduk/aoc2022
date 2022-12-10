@@ -19,9 +19,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     for line in part2(&input) {
         println!(
             "  {}",
-            line.chars()
-                .into_iter()
-                .map(|c| if c == '#' { '█' } else { ' ' })
+            line.into_iter()
+                .map(|c| if c { '█' } else { ' ' })
                 .collect::<String>()
         );
     }
@@ -42,33 +41,31 @@ fn part1(input: &[Instruction]) -> isize {
     strength
 }
 
-fn part2(input: &[Instruction]) -> Vec<String> {
-    let mut output = vec![vec![' '; 40]; 6];
-    let mut x = 0;
-    let mut y = 0;
+const SCREEN_WIDTH: usize = 40;
+const SCREEN_HEIGHT: usize = 6;
+
+fn part2(input: &[Instruction]) -> Vec<Vec<bool>> {
+    let mut output = Vec::with_capacity(SCREEN_HEIGHT);
+    let mut cur_line = Vec::with_capacity(SCREEN_WIDTH);
     let mut cpu = Cpu::new(input);
 
     while cpu.tick() {
-        let pos = cpu.x_reg();
+        let sprite_pos = cpu.x_reg();
+        let x = cur_line.len() as isize;
 
-        output[y][x] = if x as isize >= pos - 1 && x as isize <= pos + 1 {
-            '#'
-        } else {
-            '.'
-        };
+        cur_line.push(x >= sprite_pos - 1 && x <= sprite_pos + 1);
 
-        x += 1;
-
-        if x == 40 {
-            x = 0;
-            y += 1;
+        if x == SCREEN_WIDTH as isize - 1 {
+            output.push(cur_line);
+            cur_line = Vec::with_capacity(SCREEN_WIDTH);
         }
     }
 
+    if !cur_line.is_empty() {
+        output.push(cur_line);
+    }
+
     output
-        .into_iter()
-        .map(|chars| chars.into_iter().collect::<String>())
-        .collect()
 }
 
 // Input parsing
@@ -108,6 +105,15 @@ mod tests {
     fn test1() {
         let input = parse_test_input_vec(10, 1, input_transform).unwrap();
         assert_eq!(part1(&input), 13140);
-        assert_eq!(part2(&input), EXAMPLE_RESULT);
+        assert_eq!(
+            part2(&input)
+                .into_iter()
+                .map(|l| l
+                    .into_iter()
+                    .map(|p| if p { '#' } else { '.' })
+                    .collect::<String>())
+                .collect::<Vec<_>>(),
+            EXAMPLE_RESULT
+        );
     }
 }
