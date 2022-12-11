@@ -1,7 +1,10 @@
 use std::error::Error;
 use std::fs::File;
+#[cfg(miri)]
+use std::io::Read;
 use std::io::{BufRead, BufReader, Lines};
 
+#[cfg(not(miri))]
 use memmap2::Mmap;
 
 /// Parse an input file to a vector with a given transform
@@ -46,7 +49,10 @@ where
 
 /// Memory mapped input
 struct Input {
+    #[cfg(not(miri))]
     mmap: Mmap,
+    #[cfg(miri)]
+    mmap: String,
 }
 
 impl Input {
@@ -54,20 +60,14 @@ impl Input {
         // Open the file
         let file = Self::open(&format!("day{day:02}.txt"))?;
 
-        // Memory map it
-        let mmap = unsafe { Mmap::map(&file)? };
-
-        Ok(Self { mmap })
+        Self::new_from_file(file)
     }
 
     fn new_example(day: usize, example: usize) -> Result<Self, Box<dyn Error>> {
         // Open the file
         let file = Self::open(&format!("example{day:02}-{example}.txt"))?;
 
-        // Memory map it
-        let mmap = unsafe { Mmap::map(&file)? };
-
-        Ok(Self { mmap })
+        Self::new_from_file(file)
     }
 
     fn open(file: &str) -> std::io::Result<File> {
@@ -75,6 +75,23 @@ impl Input {
             Err(_) => File::open(format!("../inputs/{file}")),
             f => f,
         }
+    }
+
+    #[cfg(not(miri))]
+    fn new_from_file(file: File) -> Result<Self, Box<dyn Error>> {
+        // Memory map it
+        let mmap = unsafe { Mmap::map(&file)? };
+
+        Ok(Self { mmap })
+    }
+
+    #[cfg(miri)]
+    fn new_from_file(mut file: File) -> Result<Self, Box<dyn Error>> {
+        // Read to string
+        let mut mmap = String::new();
+        file.read_to_string(&mut mmap)?;
+
+        Ok(Self { mmap })
     }
 
     fn lines(&self) -> Lines<BufReader<&[u8]>> {
