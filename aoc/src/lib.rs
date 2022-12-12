@@ -117,7 +117,7 @@ where
     Ok(result)
 }
 
-/// Parse the first line of a line iterator with a given transform
+/// Parse the next line of a line iterator with a given transform
 fn parse_buf_line<T, F>(mut lines: Lines<BufReader<&[u8]>>, mut tfn: F) -> Result<T, Box<dyn Error>>
 where
     F: FnMut(String) -> T,

@@ -1,99 +1,159 @@
-use std::{
-    collections::{HashSet, VecDeque},
-    error::Error,
-};
+use std::collections::{HashSet, VecDeque};
+use std::error::Error;
 
 use aoc::parse_input_vec;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
-    let input = parse_input_vec(12, input_transform)?;
+    let map = Map::new(parse_input_vec(12, input_transform)?);
 
     // Run parts
-    println!("Part 1: {}", part1(&input));
-    println!("Part 2: {}", part2(&input));
+    println!("Part 1: {}", part1(&map));
+    println!("Part 2: {}", part2(&map));
 
     Ok(())
 }
 
-fn part1(input: &[InputEnt]) -> usize {
-    let width = input[0].len() as u16;
-    let height = input.len() as u16;
-
-    let mut stack = VecDeque::new();
-    stack.push_back(Visited::new(find_pos(input, START), 0));
-
-    let end = find_pos(input, END);
-
-    let mut visited = HashSet::new();
-
-    'found: loop {
-        let cur_pos = stack.pop_front().expect("No positions in the stack");
-
-        visited.insert(cur_pos.pos.clone());
-
-        let neighbours =
-            cur_pos
-                .pos
-                .neighbours(input, width, height, |to, from| from <= to + 1, &visited);
-
-        for n in neighbours {
-            if n == end {
-                break 'found cur_pos.dist + 1;
-            }
-
-            visited.insert(n.clone());
-            stack.push_back(Visited::new(n, cur_pos.dist + 1));
-        }
-    }
+fn part1(map: &Map) -> usize {
+    // Shortest path from START to END, allowed to go up by 1 only
+    map.shortest_path(&map.start, |n| *n == map.end, |from, to| to <= from + 1)
 }
 
-fn part2(input: &[InputEnt]) -> usize {
-    let width = input[0].len() as u16;
-    let height = input.len() as u16;
-
-    let mut stack = VecDeque::new();
-    stack.push_back(Visited::new(find_pos(input, END), 0));
-
-    let mut visited = HashSet::new();
-
-    'found: loop {
-        let cur_pos = stack.pop_front().expect("No positions in the stack");
-
-        visited.insert(cur_pos.pos.clone());
-
-        let neighbours =
-            cur_pos
-                .pos
-                .neighbours(input, width, height, |to, from| to <= from + 1, &visited);
-
-        for n in neighbours {
-            if n.height(input) == 0 {
-                break 'found cur_pos.dist + 1;
-            }
-
-            visited.insert(n.clone());
-            stack.push_back(Visited::new(n, cur_pos.dist + 1));
-        }
-    }
+fn part2(map: &Map) -> usize {
+    // Shortest path from END to height 0, allowed to go down by 1 only
+    map.shortest_path(&map.end, |n| map.height(n) == 0, |from, to| to >= from - 1)
 }
 
-fn find_pos(input: &[InputEnt], find_id: i8) -> Pos {
-    input
-        .iter()
-        .enumerate()
-        .find_map(|(y, row)| {
-            row.iter().enumerate().find_map(|(x, id)| {
-                if *id == find_id {
-                    Some(Pos::new(x as u16, y as u16))
-                } else {
-                    None
-                }
+/// Map
+struct Map {
+    heights: Vec<Vec<u8>>,
+    start: Pos,
+    end: Pos,
+    max_x: u16,
+    max_y: u16,
+}
+
+impl Map {
+    fn new(input: Vec<String>) -> Self {
+        let mut start = None;
+        let mut end = None;
+
+        // Build height vectors
+        let heights = input
+            .into_iter()
+            .enumerate()
+            .map(|(y, line)| {
+                line.chars()
+                    .enumerate()
+                    .map(|(x, c)| match c {
+                        'S' => {
+                            start = Some(Pos::new(x as u16, y as u16));
+                            0
+                        }
+                        'E' => {
+                            end = Some(Pos::new(x as u16, y as u16));
+                            25
+                        }
+                        'a'..='z' => c as u8 - b'a',
+                        _ => panic!("Unexpected char"),
+                    })
+                    .collect::<Vec<_>>()
             })
-        })
-        .expect("Start position not found")
+            .collect::<Vec<_>>();
+
+        let max_x = heights[0].len() as u16 - 1;
+        let max_y = heights.len() as u16 - 1;
+
+        Self {
+            heights,
+            start: start.expect("No start position found"),
+            end: end.expect("No start position found"),
+            max_x,
+            max_y,
+        }
+    }
+
+    /// Returns the height at a given position
+    fn height(&self, pos: &Pos) -> u8 {
+        self.heights[pos.y as usize][pos.x as usize]
+    }
+
+    /// Returns a vector of neighbours of a position
+    fn neighbours<F>(&self, from_pos: &Pos, chk: F, visited: &HashSet<Pos>) -> Vec<Pos>
+    where
+        F: Fn(u8, u8) -> bool,
+    {
+        let mut neigh = Vec::with_capacity(4);
+        let from_height = self.height(from_pos);
+
+        let mut add = |x, y| {
+            let to_pos = Pos::new(x, y);
+            let to_height = self.height(&to_pos);
+
+            if chk(from_height, to_height) && !visited.contains(&to_pos) {
+                neigh.push(to_pos);
+            }
+        };
+
+        // Left
+        if from_pos.x > 0 {
+            add(from_pos.x - 1, from_pos.y);
+        }
+
+        // Right
+        if from_pos.x < self.max_x {
+            add(from_pos.x + 1, from_pos.y);
+        }
+
+        // Up
+        if from_pos.y > 0 {
+            add(from_pos.x, from_pos.y - 1);
+        }
+
+        // Down
+        if from_pos.y < self.max_y {
+            add(from_pos.x, from_pos.y + 1);
+        }
+
+        neigh
+    }
+
+    /// Calculate the shortest path from a position to a position matching a criteria
+    fn shortest_path<F, G>(&self, start: &Pos, end_chk: F, neigh_chk: G) -> usize
+    where
+        F: Fn(&Pos) -> bool,
+        G: Fn(u8, u8) -> bool,
+    {
+        // Visited positions hash set
+        let mut visited = HashSet::new();
+        visited.insert(start.clone());
+
+        // Work stack
+        let mut stack = VecDeque::new();
+        stack.push_back(WorkItem::new(start.clone(), 0));
+
+        'found: loop {
+            // Get next work item
+            let cur_pos = stack.pop_front().expect("No positions in the stack");
+
+            // Get neigbouring positions which match criteria
+            let neighbours = self.neighbours(&cur_pos.pos, &neigh_chk, &visited);
+
+            for n in neighbours {
+                // Finished?
+                if end_chk(&n) {
+                    break 'found cur_pos.dist + 1;
+                }
+
+                // Insert in to the visited hash map
+                visited.insert(n.clone());
+                stack.push_back(WorkItem::new(n, cur_pos.dist + 1));
+            }
+        }
+    }
 }
 
+/// Board position
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 struct Pos {
     x: u16,
@@ -104,84 +164,23 @@ impl Pos {
     fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
-
-    fn height(&self, input: &[InputEnt]) -> i8 {
-        match input[self.y as usize][self.x as usize] {
-            START => 0,
-            END => 26,
-            h => h,
-        }
-    }
-
-    fn neighbours<F>(
-        &self,
-        input: &[InputEnt],
-        width: u16,
-        height: u16,
-        chk: F,
-        visited: &HashSet<Pos>,
-    ) -> Vec<Pos>
-    where
-        F: Fn(i8, i8) -> bool,
-    {
-        let mut neigh = Vec::new();
-        let self_height = self.height(input);
-
-        let mut add = |x, y| {
-            let pos = Pos::new(x, y);
-            let chk_height = pos.height(input);
-
-            if chk(self_height, chk_height) && !visited.contains(&pos) {
-                neigh.push(pos);
-            }
-        };
-
-        if self.x > 0 {
-            add(self.x - 1, self.y);
-        }
-
-        if self.x < width - 1 {
-            add(self.x + 1, self.y);
-        }
-
-        if self.y > 0 {
-            add(self.x, self.y - 1);
-        }
-
-        if self.y < height - 1 {
-            add(self.x, self.y + 1);
-        }
-
-        neigh
-    }
 }
 
-struct Visited {
+/// Positions with distance for the work queue
+struct WorkItem {
     pos: Pos,
     dist: usize,
 }
 
-impl Visited {
+impl WorkItem {
     fn new(pos: Pos, dist: usize) -> Self {
         Self { pos, dist }
     }
 }
-// Input parsing
 
-const START: i8 = -16;
-const END: i8 = -32;
-
-type InputEnt = Vec<i8>;
-
-fn input_transform(line: String) -> InputEnt {
-    line.chars()
-        .map(|c| match c {
-            'S' => START,
-            'E' => END,
-            'a'..='z' => c as i8 - b'a' as i8,
-            _ => panic!("Unepected char"),
-        })
-        .collect()
+/// Input parsing (no-op)
+fn input_transform(line: String) -> String {
+    line
 }
 
 #[cfg(test)]
@@ -199,7 +198,7 @@ abdefghi
 
     #[test]
     fn test1() {
-        let input = parse_test_vec(EXAMPLE1, input_transform).unwrap();
+        let input = Map::new(parse_test_vec(EXAMPLE1, input_transform).unwrap());
         assert_eq!(part1(&input), 31);
         assert_eq!(part2(&input), 29);
     }
