@@ -43,7 +43,8 @@ fn part2(map: &Map) -> usize {
 fn part1vis(map: &Map) -> Result<(), Box<dyn Error>> {
     // Shortest path from START to END, allowed to go up by 1 only
     map.shortest_path_vis(
-        "vis/day12-1.gif",
+        "vis/day12-1-anim.gif",
+        "vis/day12-1-final.gif",
         &map.start,
         |n| *n == map.end,
         |from, to| to <= from + 1,
@@ -53,7 +54,8 @@ fn part1vis(map: &Map) -> Result<(), Box<dyn Error>> {
 fn part2vis(map: &Map) -> Result<(), Box<dyn Error>> {
     // Shortest path from END to height 0, allowed to go down by 1 only
     map.shortest_path_vis(
-        "vis/day12-2.gif",
+        "vis/day12-2-anim.gif",
+        "vis/day12-2-final.gif",
         &map.end,
         |n| map.height(n) == 0,
         |from, to| to >= from - 1,
@@ -165,6 +167,7 @@ impl Map {
     {
         self.shortest_path_internal(start, end_chk, neigh_chk, |_, _, _| Ok(()))
             .expect("Unexpected error")
+            .len()
     }
 
     /// Calculate the shortest path from a position to a position matching a criteria with state callback
@@ -174,7 +177,7 @@ impl Map {
         end_chk: F,
         neigh_chk: G,
         mut state_cb: H,
-    ) -> Result<usize, Box<dyn Error>>
+    ) -> Result<Vec<Pos>, Box<dyn Error>>
     where
         F: Fn(&Pos) -> bool,
         G: Fn(u8, u8) -> bool,
@@ -186,7 +189,7 @@ impl Map {
 
         // Work stack
         let mut work_queue = VecDeque::new();
-        work_queue.push_back(WorkItem::new(start.clone(), 0));
+        work_queue.push_back(WorkItem::new(start.clone(), Vec::new()));
 
         Ok('found: loop {
             // Get next work item
@@ -197,21 +200,24 @@ impl Map {
 
             // Finished?
             if end_chk(&cur_pos.pos) {
-                break 'found cur_pos.dist;
+                break 'found cur_pos.path;
             }
 
             // Get neigbouring positions which match criteria
             for n in self.neighbours(&cur_pos.pos, &neigh_chk, &visited) {
                 // Insert in to the visited hash map
                 visited.insert(n.clone());
-                work_queue.push_back(WorkItem::new(n, cur_pos.dist + 1));
+                let mut path = cur_pos.path.clone();
+                path.push(n.clone());
+                work_queue.push_back(WorkItem::new(n, path));
             }
         })
     }
 
     fn shortest_path_vis<F, G>(
         &self,
-        path: &str,
+        path_anim: &str,
+        path_path: &str,
         start: &Pos,
         end_chk: F,
         neigh_chk: G,
@@ -243,15 +249,16 @@ impl Map {
             })
             .collect();
 
-        // Create the output file
-        let mut image = File::create(path)?;
+        // Create the animated output file
+        let mut image = File::create(path_anim)?;
 
         // Create the gif encoder
         let mut encoder = Encoder::new(&mut image, gif_width, gif_height, &colour_map)?;
 
         encoder.set_repeat(Repeat::Infinite)?;
 
-        let mut last_frame = self
+        // Create the map frame
+        let map_frame = self
             .heights
             .iter()
             .flat_map(|row| {
@@ -267,50 +274,55 @@ impl Map {
             })
             .collect::<Vec<_>>();
 
+        // Draw map frame
         let base_frame = Frame {
             width: gif_width,
             height: gif_height,
-            buffer: Cow::Borrowed(&*last_frame),
+            buffer: Cow::Borrowed(&*map_frame),
             delay: 2,
             ..Default::default()
         };
 
         encoder.write_frame(&base_frame)?;
 
+        // Save last frame
+        let mut last_frame = map_frame.clone();
+
+        let colour_pixel = |frame: &mut Vec<u8>, x, y, col: u8| {
+            let mut start = (y as usize * GIF_SCALE as usize * gif_width as usize)
+                + (x as usize * GIF_SCALE as usize);
+
+            for _ in 0..GIF_SCALE {
+                let mut elem = start;
+
+                for _ in 0..GIF_SCALE {
+                    frame[elem] = (frame[elem] % 26) + (col * 26);
+                    elem += 1;
+                }
+
+                start += gif_width as usize;
+            }
+        };
+
+        // Callback to receive state
         let state_cb = |cur_pos: &WorkItem,
                         work_queue: &VecDeque<WorkItem>,
                         visited: &HashSet<Pos>|
          -> Result<(), Box<dyn Error>> {
             let mut next_frame = last_frame.clone();
 
-            let mut colour_pixel = |x, y, col: u8| {
-                let mut start = (y as usize * GIF_SCALE as usize * gif_width as usize)
-                    + (x as usize * GIF_SCALE as usize);
-
-                for _ in 0..GIF_SCALE {
-                    let mut elem = start;
-
-                    for _ in 0..GIF_SCALE {
-                        next_frame[elem] = (next_frame[elem] % 26) + (col * 26);
-                        elem += 1;
-                    }
-
-                    start += gif_width as usize;
-                }
-            };
-
             // Colour visited blue
             for v in visited {
-                colour_pixel(v.x, v.y, 2);
+                colour_pixel(&mut next_frame, v.x, v.y, 2);
             }
 
             // Colour work queue red
             for v in work_queue {
-                colour_pixel(v.pos.x, v.pos.y, 1);
+                colour_pixel(&mut next_frame, v.pos.x, v.pos.y, 1);
             }
 
             // Colour current yellow
-            colour_pixel(cur_pos.pos.x, cur_pos.pos.y, 3);
+            colour_pixel(&mut next_frame, cur_pos.pos.x, cur_pos.pos.y, 3);
 
             // Work out difference between this frame and the last
             let mut min_x = usize::MAX;
@@ -360,13 +372,37 @@ impl Map {
             Ok(())
         };
 
-        self.shortest_path_internal(start, end_chk, neigh_chk, state_cb)?;
+        let path = self.shortest_path_internal(start, end_chk, neigh_chk, state_cb)?;
 
-        // Write dummy delay frame
+        // Draw map frame with final path
+        let mut next_frame = map_frame.clone();
+
+        for p in path {
+            colour_pixel(&mut next_frame, p.x, p.y, 3)
+        }
+
         let frame = Frame {
-            width: 0,
-            height: 0,
+            width: gif_width,
+            height: gif_height,
             delay: 1000, // 10 seconds
+            buffer: Cow::Borrowed(&*next_frame),
+            ..Frame::default()
+        };
+
+        encoder.write_frame(&frame)?;
+
+        // Draw standalone final image
+        let mut image = File::create(path_path)?;
+
+        // Create the gif encoder
+        let mut encoder = Encoder::new(&mut image, gif_width, gif_height, &colour_map)?;
+
+        encoder.set_repeat(Repeat::Infinite)?;
+
+        let frame = Frame {
+            width: gif_width,
+            height: gif_height,
+            buffer: Cow::Borrowed(&*next_frame),
             ..Frame::default()
         };
 
@@ -392,12 +428,12 @@ impl Pos {
 /// Positions with distance for the work queue
 struct WorkItem {
     pos: Pos,
-    dist: usize,
+    path: Vec<Pos>,
 }
 
 impl WorkItem {
-    fn new(pos: Pos, dist: usize) -> Self {
-        Self { pos, dist }
+    fn new(pos: Pos, path: Vec<Pos>) -> Self {
+        Self { pos, path }
     }
 }
 
