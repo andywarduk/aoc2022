@@ -1,6 +1,6 @@
 use std::{collections::HashSet, error::Error};
 
-use aoc::parse_input_line;
+use aoc::input::parse_input_line;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input

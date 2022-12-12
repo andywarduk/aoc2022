@@ -1,6 +1,6 @@
 use std::{collections::HashSet, error::Error};
 
-use aoc::parse_input_vec;
+use aoc::input::parse_input_vec;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
@@ -103,7 +103,7 @@ fn input_transform(line: String) -> Instruction {
 
 #[cfg(test)]
 mod tests {
-    use aoc::parse_test_vec;
+    use aoc::input::parse_test_vec;
 
     use super::*;
 

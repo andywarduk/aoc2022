@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error};
 
-use aoc::parse_input_vec;
+use aoc::input::parse_input_vec;
 
 const TOTAL_SPACE: usize = 70_000_000;
 const NEEDED_SPACE: usize = 30_000_000;
@@ -119,7 +119,7 @@ fn input_transform(line: String) -> InputEnt {
 
 #[cfg(test)]
 mod tests {
-    use aoc::parse_test_vec;
+    use aoc::input::parse_test_vec;
 
     use super::*;
 

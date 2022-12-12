@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use aoc::parse_input_vec;
+use aoc::input::parse_input_vec;
 
 use part1::part1;
 use part2::part2;
@@ -96,7 +96,7 @@ fn input_transform(line: String) -> InputEnt {
 
 #[cfg(test)]
 mod tests {
-    use aoc::parse_test_vec;
+    use aoc::input::parse_test_vec;
 
     use super::*;
 
