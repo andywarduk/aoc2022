@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::cmp::{max, min};
 use std::collections::{HashSet, VecDeque};
 use std::error::Error;
 use std::fs::File;
@@ -19,11 +20,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     print!("Generating visualisations...");
     stdout().flush()?;
 
-    part1vis(&map);
+    part1vis(&map)?;
     print!(" part 1");
     stdout().flush()?;
 
-    part2vis(&map);
+    part2vis(&map)?;
     println!(" part2");
 
     Ok(())
@@ -39,7 +40,7 @@ fn part2(map: &Map) -> usize {
     map.shortest_path(&map.end, |n| map.height(n) == 0, |from, to| to >= from - 1)
 }
 
-fn part1vis(map: &Map) {
+fn part1vis(map: &Map) -> Result<(), Box<dyn Error>> {
     // Shortest path from START to END, allowed to go up by 1 only
     map.shortest_path_vis(
         "vis/day12-1.gif",
@@ -49,7 +50,7 @@ fn part1vis(map: &Map) {
     )
 }
 
-fn part2vis(map: &Map) {
+fn part2vis(map: &Map) -> Result<(), Box<dyn Error>> {
     // Shortest path from END to height 0, allowed to go down by 1 only
     map.shortest_path_vis(
         "vis/day12-2.gif",
@@ -162,7 +163,8 @@ impl Map {
         F: Fn(&Pos) -> bool,
         G: Fn(u8, u8) -> bool,
     {
-        self.shortest_path_internal(start, end_chk, neigh_chk, |_, _, _| {})
+        self.shortest_path_internal(start, end_chk, neigh_chk, |_, _, _| Ok(()))
+            .expect("Unexpected error")
     }
 
     /// Calculate the shortest path from a position to a position matching a criteria with state callback
@@ -172,11 +174,11 @@ impl Map {
         end_chk: F,
         neigh_chk: G,
         mut state_cb: H,
-    ) -> usize
+    ) -> Result<usize, Box<dyn Error>>
     where
         F: Fn(&Pos) -> bool,
         G: Fn(u8, u8) -> bool,
-        H: FnMut(&WorkItem, &VecDeque<WorkItem>, &HashSet<Pos>),
+        H: FnMut(&WorkItem, &VecDeque<WorkItem>, &HashSet<Pos>) -> Result<(), Box<dyn Error>>,
     {
         // Visited positions hash set
         let mut visited = HashSet::new();
@@ -186,12 +188,12 @@ impl Map {
         let mut work_queue = VecDeque::new();
         work_queue.push_back(WorkItem::new(start.clone(), 0));
 
-        'found: loop {
+        Ok('found: loop {
             // Get next work item
             let cur_pos = work_queue.pop_front().expect("No positions in the stack");
 
             // Call state callback
-            state_cb(&cur_pos, &work_queue, &visited);
+            state_cb(&cur_pos, &work_queue, &visited)?;
 
             // Finished?
             if end_chk(&cur_pos.pos) {
@@ -204,17 +206,25 @@ impl Map {
                 visited.insert(n.clone());
                 work_queue.push_back(WorkItem::new(n, cur_pos.dist + 1));
             }
-        }
+        })
     }
 
-    fn shortest_path_vis<F, G>(&self, path: &str, start: &Pos, end_chk: F, neigh_chk: G)
+    fn shortest_path_vis<F, G>(
+        &self,
+        path: &str,
+        start: &Pos,
+        end_chk: F,
+        neigh_chk: G,
+    ) -> Result<(), Box<dyn Error>>
     where
         F: Fn(&Pos) -> bool,
         G: Fn(u8, u8) -> bool,
     {
+        // Calculate gif dimensions
         let gif_width = (self.max_x + 1) * GIF_SCALE;
         let gif_height = (self.max_y + 1) * GIF_SCALE;
 
+        // Build palette
         let colour_map: Vec<u8> = (0..=3)
             .flat_map(|i| {
                 (0..26)
@@ -233,12 +243,15 @@ impl Map {
             })
             .collect();
 
-        let mut image = File::create(path).unwrap();
-        let mut encoder = Encoder::new(&mut image, gif_width, gif_height, &colour_map).unwrap();
+        // Create the output file
+        let mut image = File::create(path)?;
 
-        encoder.set_repeat(Repeat::Infinite).unwrap();
+        // Create the gif encoder
+        let mut encoder = Encoder::new(&mut image, gif_width, gif_height, &colour_map)?;
 
-        let base_frame_data = self
+        encoder.set_repeat(Repeat::Infinite)?;
+
+        let mut last_frame = self
             .heights
             .iter()
             .flat_map(|row| {
@@ -257,53 +270,97 @@ impl Map {
         let base_frame = Frame {
             width: gif_width,
             height: gif_height,
-            buffer: Cow::Borrowed(&*base_frame_data),
+            buffer: Cow::Borrowed(&*last_frame),
             delay: 2,
             ..Default::default()
         };
 
-        encoder.write_frame(&base_frame).unwrap();
+        encoder.write_frame(&base_frame)?;
 
-        let state_cb =
-            |cur_pos: &WorkItem, work_queue: &VecDeque<WorkItem>, visited: &HashSet<Pos>| {
-                let mut frame = base_frame.clone();
-                let mut frame_data = base_frame_data.clone();
+        let state_cb = |cur_pos: &WorkItem,
+                        work_queue: &VecDeque<WorkItem>,
+                        visited: &HashSet<Pos>|
+         -> Result<(), Box<dyn Error>> {
+            let mut next_frame = last_frame.clone();
 
-                let mut colour_pixel = |x, y, col: u8| {
-                    let mut start = (y as usize * GIF_SCALE as usize * gif_width as usize)
-                        + (x as usize * GIF_SCALE as usize);
+            let mut colour_pixel = |x, y, col: u8| {
+                let mut start = (y as usize * GIF_SCALE as usize * gif_width as usize)
+                    + (x as usize * GIF_SCALE as usize);
+
+                for _ in 0..GIF_SCALE {
+                    let mut elem = start;
 
                     for _ in 0..GIF_SCALE {
-                        let mut elem = start;
-
-                        for _ in 0..GIF_SCALE {
-                            frame_data[elem] = (frame_data[elem] % 26) + (col * 26);
-                            elem += 1;
-                        }
-
-                        start += gif_width as usize;
+                        next_frame[elem] = (next_frame[elem] % 26) + (col * 26);
+                        elem += 1;
                     }
-                };
 
-                // Colour visited blue
-                for v in visited {
-                    colour_pixel(v.x, v.y, 2);
+                    start += gif_width as usize;
                 }
-
-                // Colour work queue red
-                for v in work_queue {
-                    colour_pixel(v.pos.x, v.pos.y, 1);
-                }
-
-                // Colour current yellow
-                colour_pixel(cur_pos.pos.x, cur_pos.pos.y, 3);
-
-                frame.buffer = Cow::Borrowed(&frame_data);
-
-                encoder.write_frame(&frame).unwrap();
             };
 
-        self.shortest_path_internal(start, end_chk, neigh_chk, state_cb);
+            // Colour visited blue
+            for v in visited {
+                colour_pixel(v.x, v.y, 2);
+            }
+
+            // Colour work queue red
+            for v in work_queue {
+                colour_pixel(v.pos.x, v.pos.y, 1);
+            }
+
+            // Colour current yellow
+            colour_pixel(cur_pos.pos.x, cur_pos.pos.y, 3);
+
+            // Work out difference between this frame and the last
+            let mut min_x = usize::MAX;
+            let mut max_x = 0;
+            let mut min_y = usize::MAX;
+            let mut max_y = 0;
+
+            for (i, (v1, v2)) in last_frame.iter().zip(next_frame.iter()).enumerate() {
+                if v1 != v2 {
+                    let x = i % gif_width as usize;
+                    let y = i / gif_width as usize;
+
+                    min_x = min(min_x, x);
+                    max_x = max(max_x, x);
+                    min_y = min(min_y, y);
+                    max_y = max(max_y, y);
+                }
+            }
+
+            let frame_data = next_frame
+                .chunks(gif_width as usize)
+                .enumerate()
+                .filter_map(|(y, l)| {
+                    if y >= min_y && y <= max_y {
+                        Some(l[min_x..=max_x].to_vec())
+                    } else {
+                        None
+                    }
+                })
+                .flatten()
+                .collect::<Vec<_>>();
+
+            let frame = Frame {
+                top: min_y as u16,
+                left: min_x as u16,
+                width: (max_x - min_x) as u16 + 1,
+                height: (max_y - min_y) as u16 + 1,
+                buffer: Cow::Borrowed(&*frame_data),
+                delay: 2,
+                ..Default::default()
+            };
+
+            encoder.write_frame(&frame)?;
+
+            last_frame = next_frame;
+
+            Ok(())
+        };
+
+        self.shortest_path_internal(start, end_chk, neigh_chk, state_cb)?;
 
         // Write dummy delay frame
         let frame = Frame {
@@ -313,7 +370,9 @@ impl Map {
             ..Frame::default()
         };
 
-        encoder.write_frame(&frame).unwrap();
+        encoder.write_frame(&frame)?;
+
+        Ok(())
     }
 }
 
