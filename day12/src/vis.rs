@@ -90,11 +90,19 @@ impl Map {
             frame[y as usize][x as usize] = (frame[y as usize][x as usize] % 26) + (col * 26);
         };
 
+        let mut last_len = 0;
+
         // Callback to receive state
         let state_cb = |cur_pos: &WorkItem<Vec<Pos>>,
                         work_queue: &VecDeque<WorkItem<Vec<Pos>>>,
                         visited: &HashSet<Pos>|
          -> Result<(), Box<dyn Error>> {
+            // Only plot if path length has increased
+            if cur_pos.data.len() == last_len {
+                return Ok(());
+            }
+            last_len = cur_pos.data.len();
+
             let mut next_frame = map_frame.clone();
 
             // Colour visited blue
@@ -108,7 +116,11 @@ impl Map {
             }
 
             // Colour current yellow
-            colour_pixel(&mut next_frame, cur_pos.pos.x, cur_pos.pos.y, 3);
+            for p in cur_pos.data.iter() {
+                colour_pixel(&mut next_frame, p.x, p.y, 3)
+            }
+
+            // TODO colour_pixel(&mut next_frame, cur_pos.pos.x, cur_pos.pos.y, 3);
 
             // Draw the frame
             gif.draw_frame(next_frame, 2)?;
