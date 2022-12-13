@@ -1,4 +1,5 @@
-use std::{cmp::Ordering, error::Error};
+use std::cmp::Ordering;
+use std::error::Error;
 
 use aoc::input::parse_input_vec;
 
@@ -14,6 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn part1(input: &[InputEnt]) -> usize {
+    // Read input in chunks of 3 (list, list, empty)
     input
         .chunks(3)
         .enumerate()
@@ -70,6 +72,7 @@ struct List {
     items: Vec<ListItem>,
 }
 
+// Convert a single u16 to a List containing a single number
 impl From<u16> for List {
     fn from(value: u16) -> Self {
         List {
@@ -96,6 +99,7 @@ impl Ord for List {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut ord = Ordering::Equal;
 
+        // Compare each list item in turn
         for pair in self.items.iter().zip(other.items.iter()) {
             ord = match pair {
                 (ListItem::Number(a), ListItem::Number(b)) => (*a).cmp(b),
@@ -105,11 +109,13 @@ impl Ord for List {
             };
 
             if ord != Ordering::Equal {
+                // Found a difference
                 break;
             }
         }
 
         if ord == Ordering::Equal {
+            // No difference found - lists with fewer items sort first
             ord = self.items.len().cmp(&other.items.len())
         }
 
@@ -128,66 +134,70 @@ enum ListItem {
 type InputEnt = Option<List>;
 
 fn input_transform(line: String) -> InputEnt {
-    if line.is_empty() {
-        None
-    } else {
-        let mut list = None;
+    let mut list = None;
+
+    if !line.is_empty() {
         let mut list_stack: Vec<List> = Vec::new();
-        let mut depth: isize = -1;
         let mut num_start = 0;
 
-        let flush_num =
-            |start: &mut usize, next: usize, list_stack: &mut Vec<List>, depth: &mut isize| {
-                if *start != 0 {
-                    list_stack[*depth as usize].items.push(ListItem::Number(
-                        line[*start..next]
-                            .parse::<u16>()
-                            .expect("Should be parseable u16"),
-                    ));
-                    *start = 0;
-                }
-            };
+        // Flush a number to the current list
+        let flush_num = |num_start: &mut usize, next: usize, list_stack: &mut Vec<List>| {
+            if *num_start != 0 {
+                let index = list_stack.len() - 1;
+
+                list_stack[index].items.push(ListItem::Number(
+                    line[*num_start..next]
+                        .parse::<u16>()
+                        .expect("Should be parseable u16"),
+                ));
+
+                *num_start = 0;
+            }
+        };
 
         for (i, c) in line.chars().enumerate() {
             match c {
                 '[' => {
-                    depth += 1;
-
+                    // New list
                     list_stack.push(List::default());
                 }
                 ']' => {
-                    flush_num(&mut num_start, i, &mut list_stack, &mut depth);
+                    // End of list
+                    flush_num(&mut num_start, i, &mut list_stack);
 
-                    depth -= 1;
-
-                    if depth < 0 {
+                    if list_stack.len() == 1 {
+                        // End of main list - finished
                         list = Some(
                             list_stack
                                 .pop()
                                 .expect("Should be a list left on the stack"),
-                        )
-                    } else {
-                        let sub_list = list_stack.pop().expect("Should be a list on the stack");
+                        );
 
-                        list_stack[depth as usize]
-                            .items
-                            .push(ListItem::List(sub_list));
+                        break;
+                    } else {
+                        // End of sub list
+                        let sub_list = list_stack.pop().expect("Should be a list on the stack");
+                        let index = list_stack.len() - 1;
+
+                        list_stack[index].items.push(ListItem::List(sub_list));
                     }
                 }
                 '0'..='9' => {
+                    // Number
                     if num_start == 0 {
                         num_start = i;
                     }
                 }
                 ',' => {
-                    flush_num(&mut num_start, i, &mut list_stack, &mut depth);
+                    // Value separator
+                    flush_num(&mut num_start, i, &mut list_stack);
                 }
-                c => panic!("Unexpected character {c}"),
+                c => panic!("Unexpected character {c} in input"),
             }
         }
-
-        list
     }
+
+    list
 }
 
 #[cfg(test)]
