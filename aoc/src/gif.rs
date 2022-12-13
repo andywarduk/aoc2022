@@ -7,7 +7,7 @@ use std::{
 
 use gif::{Encoder, Frame, Repeat};
 
-struct Gif {
+pub struct Gif {
     width: u16,
     height: u16,
     x_scale: u16,
@@ -28,7 +28,7 @@ impl Gif {
         y_scale: u16,
     ) -> Result<Self, Box<dyn Error>> {
         let gif_width = width * x_scale;
-        let gif_height = width * y_scale;
+        let gif_height = height * y_scale;
 
         // Create the flattened palette
         let flat_pal = palette.iter().flatten().cloned().collect::<Vec<_>>();
@@ -51,7 +51,12 @@ impl Gif {
         })
     }
 
-    pub fn draw_frame(&mut self, frame_data: Vec<Vec<u8>>) -> Result<(), Box<dyn Error>> {
+    pub fn draw_frame(
+        &mut self,
+        frame_data: Vec<Vec<u8>>,
+        delay: u16,
+    ) -> Result<(), Box<dyn Error>> {
+        // Make sure the frame looks like the correct size
         assert_eq!(frame_data.len(), self.height as usize);
         assert_eq!(frame_data[0].len(), self.width as usize);
 
@@ -116,12 +121,12 @@ impl Gif {
         );
 
         let frame = Frame {
-            top: min_y as u16,
-            left: min_x as u16,
-            width: (max_x - min_x) as u16 + 1,
-            height: (max_y - min_y) as u16 + 1,
+            top: min_y as u16 * self.y_scale,
+            left: min_x as u16 * self.x_scale,
+            width: ((max_x - min_x) as u16 + 1) * self.x_scale,
+            height: ((max_y - min_y) as u16 + 1) * self.y_scale,
             buffer: Cow::Borrowed(&*out_section),
-            delay: 2,
+            delay: max(2, delay),
             ..Default::default()
         };
 
