@@ -27,14 +27,17 @@ fn part2(input: &[InputEnt], file_stub: Option<&str>) -> u64 {
 fn do_part(input: &[InputEnt], file_stub: Option<&str>, floor: bool) -> u64 {
     let anim_file = file_stub.map(|stub| format!("vis/{stub}-anim.gif"));
 
+    // Create the map
     let mut map = Map::new(input, anim_file, floor);
 
     let mut count = 0;
 
+    // Drop sand
     while map.drop_sand() {
         count += 1;
     }
 
+    // Draw the final map
     if let Some(stub) = file_stub {
         map.draw(&format!("vis/{stub}-final.gif"));
     }

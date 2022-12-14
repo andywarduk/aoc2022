@@ -50,6 +50,7 @@ pub struct Map {
 }
 
 impl Map {
+    /// Create new map, optionall with a floor
     pub fn new(input: &[InputEnt], file: Option<String>, floor: bool) -> Self {
         // Work out min x, max x and max y (min y is 0)
         let (mut min_x, mut max_x, mut max_y) =
@@ -118,6 +119,7 @@ impl Map {
         result
     }
 
+    /// Drops a particle of sand in to the map
     pub fn drop_sand(&mut self) -> bool {
         let mut x = SAND_X;
         let mut y = 0;
@@ -132,13 +134,16 @@ impl Map {
             path.push((x, y));
 
             if self.pixel_is_background(x, y + 1) {
+                // Go down
                 y += 1;
                 last_down = true;
             } else if self.pixel_is_background(x - 1, y + 1) {
+                // Go down and left
                 y += 1;
                 x -= 1;
                 last_down = false;
             } else if self.pixel_is_background(x + 1, y + 1) {
+                // Go down and right
                 y += 1;
                 x += 1;
                 last_down = false;
@@ -146,20 +151,25 @@ impl Map {
                 // Come to rest
                 self.set_pixel(x, y, SAND_COLOUR);
 
+                // Draw an animation frame?
                 if last_down
                     && !self.pixel_is_background(x - 1, y + 1)
                     && !self.pixel_is_background(x + 1, y + 1)
                 {
-                    let mut frame = self.content.clone();
-
-                    for (x, y) in path {
-                        Self::set_frame_pixel(&mut frame, self.x_offset, x, y, SAND_COLOUR)
-                    }
-
                     match &mut self.anim_gif {
-                        Some(gif) => gif
-                            .draw_frame(frame, FRAME_DELAY)
-                            .expect("Error writing gif frame"),
+                        Some(gif) => {
+                            // Clone the map content
+                            let mut frame = self.content.clone();
+
+                            // Draw the path
+                            for (x, y) in path {
+                                Self::set_frame_pixel(&mut frame, self.x_offset, x, y, SAND_COLOUR)
+                            }
+
+                            // Draw the frame
+                            gif.draw_frame(frame, FRAME_DELAY)
+                                .expect("Error writing gif frame")
+                        }
                         None => (),
                     }
                 }
@@ -171,14 +181,17 @@ impl Map {
         false
     }
 
+    /// Get pixel at coordinate
     fn get_pixel(&self, x: u16, y: u16) -> u8 {
         self.content[y as usize][(x - self.x_offset) as usize]
     }
 
+    /// Return true if the pixel at coordinate is the background
     fn pixel_is_background(&self, x: u16, y: u16) -> bool {
         !matches!(self.get_pixel(x, y), SAND_COLOUR | ROCK_COLOUR)
     }
 
+    /// Draw a horizontal or vertical line
     fn line(&mut self, x1: u16, y1: u16, x2: u16, y2: u16) {
         let min_x = min(x1, x2);
         let max_x = max(x1, x2);
@@ -198,14 +211,17 @@ impl Map {
         }
     }
 
+    /// Sets the pixel at a coordinate
     fn set_pixel(&mut self, x: u16, y: u16, colour: u8) {
         Self::set_frame_pixel(&mut self.content, self.x_offset, x, y, colour);
     }
 
+    /// Sets the pixel in a frame buffer
     fn set_frame_pixel(frame: &mut [Vec<u8>], x_offset: u16, x: u16, y: u16, colour: u8) {
         frame[y as usize][(x - x_offset) as usize] = colour;
     }
 
+    /// Draws the current state to a gif
     pub fn draw(&self, file: &str) {
         let mut gif = Gif::new(file, &PALETTE, self.width, self.height, SCALE, SCALE)
             .expect("Unable to create gif");
@@ -217,14 +233,17 @@ impl Map {
 
 impl Drop for Map {
     fn drop(&mut self) {
+        // Animating?
         match &mut self.anim_gif {
-            Some(gif) => gif
-                .draw_frame_identical_check(
+            Some(gif) => {
+                // Draw the final frame
+                gif.draw_frame_identical_check(
                     self.content.clone(),
                     FINAL_FRAME_DELAY,
                     IdenticalAction::Delay,
                 )
-                .expect("Error writing gif frame"),
+                .expect("Error writing gif frame")
+            }
             None => (),
         }
     }
