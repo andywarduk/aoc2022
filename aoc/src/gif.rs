@@ -56,6 +56,15 @@ impl Gif {
         frame_data: Vec<Vec<u8>>,
         delay: u16,
     ) -> Result<(), Box<dyn Error>> {
+        self.draw_frame_identical_check(frame_data, delay, IdenticalAction::Ignore)
+    }
+
+    pub fn draw_frame_identical_check(
+        &mut self,
+        frame_data: Vec<Vec<u8>>,
+        delay: u16,
+        identical_action: IdenticalAction,
+    ) -> Result<(), Box<dyn Error>> {
         // Make sure the frame looks like the correct size
         assert_eq!(frame_data.len(), self.height as usize);
         assert_eq!(frame_data[0].len(), self.width as usize);
@@ -90,43 +99,66 @@ impl Gif {
             max_y = self.height as usize - 1;
         }
 
-        // Extract frame portion
-        let frame_section: Vec<&[u8]> = frame_data
-            .iter()
-            .enumerate()
-            .filter_map(|(y, l)| {
-                if y >= min_y && y <= max_y {
-                    Some(&l[min_x..=max_x])
-                } else {
-                    None
-                }
-            })
-            .collect();
+        if min_x == usize::MAX {
+            match identical_action {
+                IdenticalAction::Ignore => (),
+                IdenticalAction::Delay => self.delay(delay)?,
+            }
+        } else {
+            // Extract frame portion
+            let frame_section: Vec<&[u8]> = frame_data
+                .iter()
+                .enumerate()
+                .filter_map(|(y, l)| {
+                    if y >= min_y && y <= max_y {
+                        Some(&l[min_x..=max_x])
+                    } else {
+                        None
+                    }
+                })
+                .collect();
 
-        // Scale the frame up
-        let out_section = frame_section.into_iter().fold(
-            Vec::with_capacity(self.gif_height as usize * self.gif_width as usize),
-            |mut acc: Vec<u8>, line| {
-                let expanded_line: Vec<u8> = line
-                    .iter()
-                    .flat_map(|pix| vec![*pix; self.x_scale as usize])
-                    .collect();
+            // Scale the frame up
+            let out_section = frame_section.into_iter().fold(
+                Vec::with_capacity(self.gif_height as usize * self.gif_width as usize),
+                |mut acc: Vec<u8>, line| {
+                    let expanded_line: Vec<u8> = line
+                        .iter()
+                        .flat_map(|pix| vec![*pix; self.x_scale as usize])
+                        .collect();
 
-                for _ in 0..self.y_scale {
-                    acc.extend(&expanded_line);
-                }
+                    for _ in 0..self.y_scale {
+                        acc.extend(&expanded_line);
+                    }
 
-                acc
-            },
-        );
+                    acc
+                },
+            );
 
+            // Create the next frame
+            let frame = Frame {
+                top: min_y as u16 * self.y_scale,
+                left: min_x as u16 * self.x_scale,
+                width: ((max_x - min_x) as u16 + 1) * self.x_scale,
+                height: ((max_y - min_y) as u16 + 1) * self.y_scale,
+                buffer: Cow::Borrowed(&*out_section),
+                delay: max(2, delay),
+                ..Default::default()
+            };
+
+            // Write out the frame
+            self.encoder.write_frame(&frame)?;
+        }
+
+        // Save the last frame
+        self.last_frame = Some(frame_data);
+
+        Ok(())
+    }
+
+    pub fn delay(&mut self, delay: u16) -> Result<(), Box<dyn Error>> {
         // Create the next frame
         let frame = Frame {
-            top: min_y as u16 * self.y_scale,
-            left: min_x as u16 * self.x_scale,
-            width: ((max_x - min_x) as u16 + 1) * self.x_scale,
-            height: ((max_y - min_y) as u16 + 1) * self.y_scale,
-            buffer: Cow::Borrowed(&*out_section),
             delay: max(2, delay),
             ..Default::default()
         };
@@ -134,9 +166,11 @@ impl Gif {
         // Write out the frame
         self.encoder.write_frame(&frame)?;
 
-        // Save the last frame
-        self.last_frame = Some(frame_data);
-
         Ok(())
     }
+}
+
+pub enum IdenticalAction {
+    Ignore,
+    Delay,
 }
