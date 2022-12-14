@@ -110,6 +110,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "day14"
+version = "0.1.0"
+dependencies = [
+ "aoc",
+ "lazy_static",
+ "prng_mt",
+]
+
+[[package]]
 name = "gif"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -139,6 +148,12 @@ checksum = "4b182332558b18d807c4ce1ca8ca983b34c3ee32765e47b3f0f69b90355cc1dc"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "prng_mt"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c102f2e5b3db881172fe001d9956cd07aa9f8a37ed366497032e61abed01c937"
 
 [[package]]
 name = "weezl"
