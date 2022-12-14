@@ -120,6 +120,7 @@ impl Gif {
             },
         );
 
+        // Create the next frame
         let frame = Frame {
             top: min_y as u16 * self.y_scale,
             left: min_x as u16 * self.x_scale,
@@ -130,8 +131,10 @@ impl Gif {
             ..Default::default()
         };
 
+        // Write out the frame
         self.encoder.write_frame(&frame)?;
 
+        // Save the last frame
         self.last_frame = Some(frame_data);
 
         Ok(())
