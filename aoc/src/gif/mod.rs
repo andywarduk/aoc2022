@@ -133,6 +133,7 @@ impl Gif {
         Ok(())
     }
 
+    /// Creates an empty delay frame
     pub fn delay(&mut self, delay: u16) -> Result<(), Box<dyn Error>> {
         // Create the next frame
         let frame = Frame {
@@ -146,6 +147,9 @@ impl Gif {
         Ok(())
     }
 
+    /// Calculates the difference between a given frame and the last frame output
+    /// Returns None if there is no difference
+    /// If there is no previous frame then the whole frame is considered changed
     fn frame_difference(&self, frame_data: &[Vec<u8>]) -> Option<Region> {
         if let Some(last_frame) = &self.last_frame {
             let mut region = Region::max_init();
@@ -175,6 +179,7 @@ impl Gif {
     }
 }
 
+/// Action to take if the next frame is identical to the last
 pub enum IdenticalAction {
     Ignore,
     Delay,

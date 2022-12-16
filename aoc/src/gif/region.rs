@@ -3,6 +3,7 @@ use std::{
     ops::RangeInclusive,
 };
 
+/// Structure describing a rectanglar region
 pub struct Region {
     top: u16,
     left: u16,
@@ -11,6 +12,7 @@ pub struct Region {
 }
 
 impl Region {
+    /// Creates a new region
     pub fn new(top: u16, left: u16, bottom: u16, right: u16) -> Self {
         Region {
             top,
@@ -20,26 +22,32 @@ impl Region {
         }
     }
 
+    /// Returns the left position of the region
     pub fn left(&self) -> u16 {
         self.left
     }
 
+    /// Returns the top position of the region
     pub fn top(&self) -> u16 {
         self.top
     }
 
+    /// Returns the width of the region
     pub fn width(&self) -> u16 {
         (self.right - self.left) + 1
     }
 
+    /// Returns the height of the region
     pub fn height(&self) -> u16 {
         (self.bottom - self.top) + 1
     }
 
+    /// Returns true if the y coordinate is contained in the region
     pub fn contains_y(&self, y: u16) -> bool {
         y >= self.top && y <= self.bottom
     }
 
+    /// Returns a range for all x coordinates
     pub fn x_range(&self) -> RangeInclusive<usize> {
         (self.left as usize)..=(self.right as usize)
     }
