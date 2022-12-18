@@ -1,11 +1,13 @@
 use crate::{xref::XRef, InputEnt};
 
+// Distance and path map
 pub struct FloydWarshall {
     dist: Vec<Vec<Option<u8>>>,
     next: Vec<Vec<Option<u8>>>,
 }
 
 impl FloydWarshall {
+    /// Builds a new distance and path table from input
     pub fn new(input: &[InputEnt], xref: &XRef) -> Self {
         let dimension = input.len();
 
@@ -42,6 +44,7 @@ impl FloydWarshall {
         res
     }
 
+    /// Returns the distance between two locations given as strings
     pub fn dist_str(&self, xref: &XRef, from: &str, to: &str) -> u8 {
         let u = xref.index_for_valve(from);
         let v = xref.index_for_valve(to);
@@ -49,12 +52,14 @@ impl FloydWarshall {
         self.dist_idx(u, v)
     }
 
+    /// Returns the distance between two locations given as indexes
     pub fn dist_idx(&self, from: u8, to: u8) -> u8 {
         self.dist[from as usize][to as usize].unwrap()
     }
 
+    /// Returns the path between two locations as strings
     pub fn path_str(&self, xref: &XRef, from: &str, to: &str) -> Vec<String> {
-        let mut u = xref.index_for_valve(from);
+        let u = xref.index_for_valve(from);
         let v = xref.index_for_valve(to);
 
         self.path_idx(u, v)
@@ -63,6 +68,7 @@ impl FloydWarshall {
             .collect::<Vec<_>>()
     }
 
+    /// Returns the path between two locations as indexes
     pub fn path_idx(&self, mut from: u8, to: u8) -> Vec<u8> {
         let mut res = Vec::new();
 
