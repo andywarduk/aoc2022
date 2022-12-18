@@ -1,252 +1,216 @@
-use std::{cmp::min, collections::HashMap, error::Error};
+use std::{cmp::Ordering, collections::HashMap, error::Error};
 
+use floydwarshall::FloydWarshall;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 
 use aoc::input::parse_input_vec;
 use regex::Regex;
 
+use crate::xref::XRef;
+
+mod floydwarshall;
+mod xref;
+
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
     let input = parse_input_vec(16, input_transform)?;
 
+    // Build xref
+    let xref = XRef::new(&input);
+
+    // Build map
+    let dist_map = FloydWarshall::new(&input, &xref);
+
     // Run parts
-    println!("Part 1: {}", part1(&input));
-    println!("Part 2: {}", part2(&input));
+    println!("Part 1: {}", part1(&input, &xref, &dist_map));
+    println!("Part 2: {}", part2(&input, &xref, &dist_map));
 
     Ok(())
 }
 
-struct MapEnt {
-    rate: u8,
-    tunnels: Vec<u8>,
-}
-
-fn part1(input: &[InputEnt]) -> usize {
-    let ivmap: HashMap<u8, String> = input
+pub fn part1(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> usize {
+    // Build list of interesting valves
+    let valves = input
         .iter()
-        .enumerate()
-        .map(|(i, v)| (i as u8, v.valve.clone()))
-        .collect();
-
-    let vimap: HashMap<String, u8> = input
-        .iter()
-        .enumerate()
-        .map(|(i, v)| (v.valve.clone(), i as u8))
-        .collect();
-
-    let map: HashMap<_, _> = input
-        .iter()
-        .enumerate()
-        .map(|(i, v)| {
-            (
-                i as u8,
-                MapEnt {
-                    rate: v.rate,
-                    tunnels: v.tunnels.iter().map(|t| *vimap.get(t).unwrap()).collect(),
-                },
-            )
+        .filter_map(|v| {
+            if v.rate != 0 {
+                Some(xref.index_for_valve(&v.valve))
+            } else {
+                None
+            }
         })
-        .collect();
-
-    let mut valves = input
-        .iter()
-        .enumerate()
-        .filter(|(_, v)| v.rate != 0)
-        .map(|(i, v)| (v.rate, i as u8))
         .collect::<Vec<_>>();
 
-    valves.sort_by(|a, b| b.cmp(a));
+    let mut best = None;
 
-    let state = State {
-        location: 0,
-        rate: 0,
-        valves,
-        time_left: 30 + 1,
-        released: 0,
-        actions: Vec::new(),
-    };
+    walk(
+        input,
+        dist_map,
+        State {
+            vno: xref.index_for_valve("AA"),
+            valves,
+            rate: 0,
+            released: 0,
+            time_left: 30,
+            route: Vec::new(),
+        },
+        &mut best,
+    );
 
-    let mut solutions = Solutions { best: None };
+    let (released, _) = best.unwrap();
 
-    part1_move(&map, *vimap.get("AA").unwrap(), state, &mut solutions);
-
-    println!("{:?}", solutions);
-
-    solutions.best.unwrap().released
+    released
 }
 
-#[derive(Debug, Clone)]
-enum Action {
-    Open(u8),
-    Move(u8),
+pub fn part2(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> usize {
+    // Build list of interesting valves
+    let valves = input
+        .iter()
+        .filter_map(|v| {
+            if v.rate != 0 {
+                Some(xref.index_for_valve(&v.valve))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let sol_map = (0..valves.len())
+        .map(|cnt| {
+            println!("{}", cnt);
+            valves
+                .iter()
+                .combinations(cnt)
+                .map(|valves| {
+                    println!("{:?}", valves);
+                    let mut best = None;
+
+                    let valves = valves.into_iter().copied().collect::<Vec<_>>();
+
+                    walk(
+                        input,
+                        dist_map,
+                        State {
+                            vno: xref.index_for_valve("AA"),
+                            valves: valves.clone(),
+                            rate: 0,
+                            released: 0,
+                            time_left: 30,
+                            route: Vec::new(),
+                        },
+                        &mut best,
+                    );
+
+                    (valves, best)
+                })
+                .collect::<HashMap<_, _>>()
+        })
+        .collect::<Vec<_>>();
+
+    println!("{:?}", sol_map);
+    0 // TODO
 }
 
-#[derive(Debug, Clone)]
-struct State {
-    location: u8,
-    rate: usize,
-    valves: Vec<(u8, u8)>,
-    time_left: usize,
-    released: usize,
-    actions: Vec<Action>,
-}
-
-impl State {
-    fn potential_best(&self) -> usize {
-        let adj = usize::from(self.location != self.valves[0].1);
-
-        let potential: usize = self
+fn walk(
+    input: &[InputEnt],
+    dist_map: &FloydWarshall,
+    state: State,
+    best: &mut Option<(usize, Vec<u8>)>,
+) {
+    if state.valves.is_empty() {
+        solution(&state, best);
+    } else {
+        let mut choices = state
             .valves
             .iter()
             .enumerate()
-            .map(|(i, v)| (self.time_left - min(self.time_left, (i + adj) * 2)) * v.0 as usize)
-            .sum();
-
-        self.released + (self.time_left * self.rate) + potential
-    }
-
-    fn open(&mut self, map_loc: &MapEnt) {
-        self.valves.retain(|v| v.1 != self.location);
-
-        self.actions.push(Action::Open(self.location));
-
-        self.decrease_time();
-
-        self.rate += map_loc.rate as usize;
-    }
-
-    fn move_to(&mut self, tunnel: u8) {
-        self.location = tunnel;
-
-        self.actions.push(Action::Move(tunnel));
-
-        self.decrease_time();
-    }
-
-    fn decrease_time(&mut self) {
-        self.released += self.rate;
-        self.time_left -= 1;
-    }
-}
-
-#[derive(Debug)]
-struct Solutions {
-    best: Option<Solution>,
-}
-
-impl Solutions {
-    fn best_released(&self) -> usize {
-        match &self.best {
-            None => 0,
-            Some(sol) => sol.released,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Solution {
-    released: usize,
-    action: Vec<Action>,
-}
-
-fn part1_iter(map: &HashMap<u8, MapEnt>, state: State, solutions: &mut Solutions) {
-    if state.time_left == 0 {
-        part1_solution(state, solutions);
-    } else if state.valves.is_empty() {
-        // No more valves to open
-        part1_wait(state, solutions);
-    } else if state.potential_best() <= solutions.best_released() {
-        // println!(
-        //     "Bailing {} {}",
-        //     state.potential_best(),
-        //     solutions.best_released()
-        // );
-    } else {
-        let map_loc = map.get(&state.location).expect("Valve not found");
-
-        // Open the valve?
-        if map_loc.rate > 0 && state.valves.iter().any(|v| v.1 == state.location) {
-            part1_open(map, map_loc, state.clone(), solutions)
-        }
-
-        // Rank the next moves
-        let mut moves = map_loc
-            .tunnels
-            .iter()
-            .map(|t| {
+            .map(|(vno, v)| {
                 (
-                    match state.valves.iter().position(|(_, v)| v == t) {
-                        Some(pos) => pos,
-                        None => {
-                            match state.actions.iter().position(|a| match a {
-                                Action::Move(mv) => t == mv,
-                                Action::Open(_) => false,
-                            }) {
-                                Some(pos) => state.valves.len() + pos + 1,
-                                None => state.valves.len(),
-                            }
-                        }
-                    },
-                    t,
+                    dist_map.dist_idx(state.vno, *v),
+                    input[*v as usize].rate,
+                    vno,
                 )
             })
             .collect::<Vec<_>>();
 
-        moves.sort();
+        // Sort by distance ascending then rate descending
+        choices.sort_by(|a, b| match a.0.cmp(&b.0) {
+            Ordering::Equal => b.1.cmp(&a.1),
+            c => c,
+        });
 
-        // Execute the moves
-        for (_, t) in moves {
-            part1_move(map, *t, state.clone(), solutions);
+        for (dist, rate, velem) in choices {
+            // TODO other shortcuts here
+            if state.time_left > dist {
+                let next_vno = state.valves[velem];
+
+                let mut next_valves = state.valves.clone();
+                next_valves.swap_remove(velem);
+
+                let time_spent = dist as usize + 1;
+
+                let mut route = state.route.clone();
+                route.push(next_vno);
+
+                let next_state = State {
+                    vno: next_vno,
+                    valves: next_valves,
+                    rate: state.rate + rate as usize,
+                    released: state.released + (state.rate * time_spent),
+                    time_left: state.time_left - time_spent as u8,
+                    route,
+                };
+
+                walk(input, dist_map, next_state, best);
+            } else {
+                solution(&state, best);
+            }
         }
     }
 }
 
-fn part1_open(
-    map: &HashMap<u8, MapEnt>,
-    map_loc: &MapEnt,
-    mut state: State,
-    solutions: &mut Solutions,
-) {
-    // println!("Open {}", state.location);
-    state.open(map_loc);
-    part1_iter(map, state, solutions);
-}
+fn solution(state: &State, best: &mut Option<(usize, Vec<u8>)>) {
+    let total = state.released + (state.time_left as usize * state.rate);
 
-fn part1_move(map: &HashMap<u8, MapEnt>, tunnel: u8, mut state: State, solutions: &mut Solutions) {
-    // println!("Move to {}", tunnel);
-    state.move_to(tunnel);
-    part1_iter(map, state, solutions);
-}
-
-fn part1_wait(mut state: State, solutions: &mut Solutions) {
-    // println!("Wait at {}", state.location);
-    while state.time_left > 0 {
-        state.decrease_time()
-    }
-
-    part1_solution(state, solutions);
-}
-
-fn part1_solution(state: State, solutions: &mut Solutions) {
-    println!("Sol {}", state.released);
-    if state.released > solutions.best_released() {
-        solutions.best = Some(Solution {
-            released: state.released,
-            action: state.actions,
-        })
+    match *best {
+        Some((best_total, _)) if best_total < total => *best = Some((total, state.route.clone())),
+        None => *best = Some((total, state.route.clone())),
+        _ => (),
     }
 }
 
-fn part2(input: &[InputEnt]) -> u64 {
-    0 // TODO
+struct State {
+    vno: u8,
+    valves: Vec<u8>,
+    rate: usize,
+    released: usize,
+    time_left: u8,
+    route: Vec<u8>,
 }
+
+// impl State {
+//     fn potential_best(&self) -> usize {
+//         let adj = usize::from(self.location != self.valves[0].1);
+
+//         let potential: usize = self
+//             .valves
+//             .iter()
+//             .enumerate()
+//             .map(|(i, v)| (self.time_left - min(self.time_left, (i + adj) * 2)) * v.0 as usize)
+//             .sum();
+
+//         self.released + (self.time_left * self.rate) + potential
+//     }
+// }
 
 // Input parsing
 
-struct InputEnt {
-    valve: String,
-    rate: u8,
-    tunnels: Vec<String>,
+#[derive(Clone)]
+pub struct InputEnt {
+    pub valve: String,
+    pub rate: u8,
+    pub tunnels: Vec<String>,
 }
 
 fn input_transform(line: String) -> InputEnt {
@@ -295,7 +259,10 @@ Valve JJ has flow rate=21; tunnel leads to valve II
     #[test]
     fn test1() {
         let input = parse_test_vec(EXAMPLE1, input_transform).unwrap();
-        assert_eq!(part1(&input), 1651);
-        assert_eq!(part2(&input), 0 /* TODO */);
+        let xref = XRef::new(&input);
+        let dist_map = FloydWarshall::new(&input, &xref);
+
+        assert_eq!(part1(&input, &xref, &dist_map), 1651);
+        assert_eq!(part2(&input, &xref, &dist_map), 1707);
     }
 }
