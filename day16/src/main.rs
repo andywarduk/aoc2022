@@ -15,7 +15,7 @@ mod route;
 mod walk;
 mod xref;
 
-pub const START: &str = "AA";
+pub const START_ROOM: &str = "AA";
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Get input
@@ -27,16 +27,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Build map
     let dist_map = FloydWarshall::new(&input, &xref);
 
+    // Build list of interesting valves
+    let valves = interesting_valves(&input, &xref);
+
     // Run part 1
     println!("Part 1:");
-    let (best1, route1) = part1(&input, &xref, &dist_map);
+    let (best1, route1) = part1(&input, &xref, &dist_map, &valves);
     println!("  Best: {}", best1);
     print!("  Route: ");
     route1.print(&xref, &dist_map);
 
     // Run part 2
     println!("Part 2:");
-    let (best2, route2_1, route2_2) = part2(&input, &xref, &dist_map);
+    let (best2, route2_1, route2_2) = part2(&input, &xref, &dist_map, &valves);
     println!("  Best: {}", best2);
     print!("  Route 1: ");
     route2_1.print(&xref, &dist_map);
@@ -46,19 +49,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn part1(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> (usize, Route) {
-    // Build list of interesting valves
-    let valves = input
-        .iter()
-        .filter_map(|v| {
-            if v.rate != 0 {
-                Some(xref.index_for_valve(&v.valve))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-
+pub fn part1(
+    input: &[InputEnt],
+    xref: &XRef,
+    dist_map: &FloydWarshall,
+    valves: &[u8],
+) -> (usize, Route) {
     // Best solution found
     let mut best = None;
 
@@ -79,7 +75,7 @@ pub fn part1(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> (usiz
     };
 
     // Initial state
-    let state = WalkState::new(xref.index_for_valve(START), valves, 30);
+    let state = WalkState::new(xref.index_for_valve(START_ROOM), valves.to_vec(), 30);
 
     // Walk the routes
     walk(input, dist_map, state, &mut solution);
@@ -89,19 +85,12 @@ pub fn part1(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> (usiz
     (best.released, best.route)
 }
 
-pub fn part2(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> (usize, Route, Route) {
-    // Build list of interesting valves
-    let valves = input
-        .iter()
-        .filter_map(|v| {
-            if v.rate != 0 {
-                Some(xref.index_for_valve(&v.valve))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-
+pub fn part2(
+    input: &[InputEnt],
+    xref: &XRef,
+    dist_map: &FloydWarshall,
+    valves: &[u8],
+) -> (usize, Route, Route) {
     // Solutions vector
     let mut solutions = Vec::new();
 
@@ -117,24 +106,34 @@ pub fn part2(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> (usiz
     };
 
     // Initial state
-    let state = WalkState::new(xref.index_for_valve(START), valves, 26);
+    let state = WalkState::new(xref.index_for_valve(START_ROOM), valves.to_vec(), 26);
 
     // Walk the routes
     walk(input, dist_map, state, &mut solution);
 
+    // Bet combination details
     let mut best = 0;
     let mut me_route = None;
     let mut ele_route = None;
 
-    for me in solutions.iter() {
-        for ele in solutions.iter() {
-            if me.valve_mask & ele.valve_mask == 0 {
-                let total = me.released + ele.released;
+    // Walk solutions for me
+    for me in 0..solutions.len() {
+        let me_sol = &solutions[me];
+        let me_mask = me_sol.valve_mask;
 
+        // Walk elephant solutions (from me + 1)
+        for ele_sol in solutions.iter().skip(me + 1) {
+            // Make sure solutions cover separate set of rooms
+            if me_mask & ele_sol.valve_mask == 0 {
+                // calculate total
+                let total = me_sol.released + ele_sol.released;
+
+                // Check against the best
                 if total > best {
+                    // Best so far
                     best = total;
-                    me_route = Some(&me.route);
-                    ele_route = Some(&ele.route);
+                    me_route = Some(&me_sol.route);
+                    ele_route = Some(&ele_sol.route);
                 }
             }
         }
@@ -145,6 +144,19 @@ pub fn part2(input: &[InputEnt], xref: &XRef, dist_map: &FloydWarshall) -> (usiz
         me_route.expect("No route 1").clone(),
         ele_route.expect("No route 2").clone(),
     )
+}
+
+fn interesting_valves(input: &[InputEnt], xref: &XRef) -> Vec<u8> {
+    input
+        .iter()
+        .filter_map(|v| {
+            if v.rate != 0 {
+                Some(xref.index_for_valve(&v.valve))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 struct Sol1 {
@@ -215,11 +227,12 @@ Valve JJ has flow rate=21; tunnel leads to valve II
         let input = parse_test_vec(EXAMPLE1, input_transform).unwrap();
         let xref = XRef::new(&input);
         let dist_map = FloydWarshall::new(&input, &xref);
+        let valves = interesting_valves(&input, &xref);
 
-        let (best1, _) = part1(&input, &xref, &dist_map);
+        let (best1, _) = part1(&input, &xref, &dist_map, &valves);
         assert_eq!(best1, 1651);
 
-        let (best2, _, _) = part2(&input, &xref, &dist_map);
+        let (best2, _, _) = part2(&input, &xref, &dist_map, &valves);
         assert_eq!(best2, 1707);
     }
 }

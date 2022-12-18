@@ -1,4 +1,4 @@
-use crate::{floydwarshall::FloydWarshall, xref::XRef, START};
+use crate::{floydwarshall::FloydWarshall, xref::XRef, START_ROOM};
 
 // Structure to hold a route
 #[derive(Debug, Default, Clone)]
@@ -17,9 +17,9 @@ impl Route {
 
     /// Pretty prints the route
     pub fn print(&self, xref: &XRef, map: &FloydWarshall) {
-        let mut loc = xref.index_for_valve(START);
+        let mut loc = xref.index_for_valve(START_ROOM);
 
-        print!("{START}");
+        print!("{START_ROOM}");
 
         for p in self.0.iter() {
             for r in map.path_idx(loc, *p).iter().skip(1) {

@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use crate::{floydwarshall::FloydWarshall, route::Route, InputEnt};
 
 /// Walks all routes
@@ -7,54 +5,48 @@ pub fn walk<F>(input: &[InputEnt], dist_map: &FloydWarshall, state: WalkState, c
 where
     F: FnMut(&WalkState),
 {
-    if !state.valves.is_empty() {
-        // TODO NEEDED?
-        // Build list of choices (distance, rate, valve element)
-        let mut choices = state
-            .valves
-            .iter()
-            .enumerate()
-            .map(|(velem, v)| {
-                (
-                    dist_map.dist_idx(state.vno, *v),
-                    input[*v as usize].rate,
-                    velem,
-                )
-            })
-            .collect::<Vec<_>>();
+    // Process each valve in turn
+    for vno in state.valves.iter() {
+        // Get distance
+        let dist = dist_map.dist_idx(state.vno, *vno);
 
-        // Sort by distance ascending then rate descending
-        choices.sort_by(|a, b| match a.0.cmp(&b.0) {
-            Ordering::Equal => b.1.cmp(&a.1),
-            c => c,
-        });
+        // Get rate at destination
+        let rate = input[*vno as usize].rate;
 
-        for (dist, rate, velem) in choices {
-            if state.time_left > dist {
-                let next_vno = state.valves[velem];
+        // Enough time left?
+        if state.time_left > dist {
+            // Create next valves vector
+            let next_valves = state
+                .valves
+                .iter()
+                .filter(|v| **v != *vno)
+                .copied()
+                .collect::<Vec<_>>();
 
-                let mut next_valves = state.valves.clone();
-                next_valves.swap_remove(velem);
+            // Calculate time spent
+            let time_spent = dist as usize + 1;
 
-                let time_spent = dist as usize + 1;
+            // Create next route vector
+            let mut route = state.route.clone();
+            route.add(*vno);
 
-                let mut route = state.route.clone();
-                route.add(next_vno);
+            // Build next state
+            let next_state = WalkState {
+                vno: *vno,
+                valves: next_valves,
+                rate: state.rate + rate as usize,
+                released: state.released + (state.rate * time_spent),
+                time_left: state.time_left - time_spent as u8,
+                route,
+            };
 
-                let next_state = WalkState {
-                    vno: next_vno,
-                    valves: next_valves,
-                    rate: state.rate + rate as usize,
-                    released: state.released + (state.rate * time_spent),
-                    time_left: state.time_left - time_spent as u8,
-                    route,
-                };
+            // Call callback
+            cb(&next_state);
 
-                cb(&next_state);
-
-                if !state.valves.is_empty() {
-                    walk(input, dist_map, next_state, cb);
-                }
+            // More to process?
+            if !next_state.valves.is_empty() {
+                // Recurse
+                walk(input, dist_map, next_state, cb);
             }
         }
     }
