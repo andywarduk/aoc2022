@@ -28,16 +28,13 @@ lazy_static! {
             (val as isize + adj) as u8
         };
 
-        let bg_colours = (0..BG_COLOURS)
-        .map(|_| {
-            [rnd_adj(62), rnd_adj(34),rnd_adj(21)] // Background
-        })
-        .collect::<Vec<_>>();
-
         vec![
             [122, 94, 91]/*210, 105, 30]*/,  // Rock (Cocoa brown)
             [237, 201, 175], // Sand (Desert sand)
-        ].into_iter().chain(bg_colours.into_iter()).collect()
+        ].into_iter().chain((0..BG_COLOURS)
+        .map(|_| {
+            [rnd_adj(62), rnd_adj(34),rnd_adj(21)] // Background
+        })).collect()
     };
 }
 

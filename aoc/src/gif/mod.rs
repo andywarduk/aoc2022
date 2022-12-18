@@ -81,8 +81,8 @@ impl Gif {
                 }
             }
             Some(difference) => {
-                // Extract frame portion
-                let frame_section: Vec<&[u8]> = frame_data
+                // Scale the frame up
+                let out_section = frame_data
                     .iter()
                     .enumerate()
                     .filter_map(|(y, l)| {
@@ -92,24 +92,21 @@ impl Gif {
                             None
                         }
                     })
-                    .collect();
+                    .fold(
+                        Vec::with_capacity(self.gif_height as usize * self.gif_width as usize),
+                        |mut acc: Vec<u8>, line| {
+                            let expanded_line: Vec<u8> = line
+                                .iter()
+                                .flat_map(|pix| vec![*pix; self.x_scale as usize])
+                                .collect();
 
-                // Scale the frame up
-                let out_section = frame_section.into_iter().fold(
-                    Vec::with_capacity(self.gif_height as usize * self.gif_width as usize),
-                    |mut acc: Vec<u8>, line| {
-                        let expanded_line: Vec<u8> = line
-                            .iter()
-                            .flat_map(|pix| vec![*pix; self.x_scale as usize])
-                            .collect();
+                            for _ in 0..self.y_scale {
+                                acc.extend(&expanded_line);
+                            }
 
-                        for _ in 0..self.y_scale {
-                            acc.extend(&expanded_line);
-                        }
-
-                        acc
-                    },
-                );
+                            acc
+                        },
+                    );
 
                 // Create the next frame
                 let frame = Frame {
