@@ -1,0 +1,28 @@
+Darwin 21.6.0 Darwin Kernel Version 21.6.0: Thu Sep 29 20:12:57 PDT 2022; root:xnu-8020.240.7~1/RELEASE_X86_64 x86_64 i386
+Part 1: 4450
+Part 2: 2564
+        0.09 real         0.01 user         0.00 sys
+             4374528  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                1196  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   1  voluntary context switches
+                   3  involuntary context switches
+           105129069  instructions retired
+            53108850  cycles elapsed
+             3862528  peak memory footprint
+rustc 1.67.0-nightly (95a3a7277 2022-10-31)
+binary: rustc
+commit-hash: 95a3a7277b44bbd2dd3485703d9a05f64652b60e
+commit-date: 2022-10-31
+host: x86_64-apple-darwin
+release: 1.67.0-nightly
+LLVM version: 15.0.4
