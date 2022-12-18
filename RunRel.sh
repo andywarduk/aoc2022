@@ -38,6 +38,5 @@ esac
 
 outfile=stats/day$daypad-$outadd.txt
 echo $uname > "$outfile"
-\time $flags target/release/day$daypad >>"$outfile" 2>&1
+\time $flags target/release/day$daypad 2>&1 | tee "$outfile"
 rustc -Vv >> "$outfile"
-
