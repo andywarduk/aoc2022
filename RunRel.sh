@@ -37,6 +37,7 @@ case "x$(uname)" in
 esac
 
 outfile=stats/day$daypad-$outadd.txt
-echo $uname > "$outfile"
 \time $flags target/release/day$daypad 2>&1 | tee "$outfile"
+echo "------------------------------------------" >> "$outfile"
+echo $uname >> "$outfile"
 rustc -Vv >> "$outfile"

@@ -3,16 +3,16 @@ Part 2: LVZPSTTCZ
 	Command being timed: "target/release/day05"
 	User time (seconds): 0.00
 	System time (seconds): 0.00
-	Percent of CPU this job got: 89%
+	Percent of CPU this job got: 92%
 	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1932
+	Maximum resident set size (kbytes): 1952
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 95
+	Minor (reclaiming a frame) page faults: 94
 	Voluntary context switches: 1
 	Involuntary context switches: 0
 	Swaps: 0
@@ -23,6 +23,8 @@ Part 2: LVZPSTTCZ
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
+------------------------------------------
+Linux 5.19.0-26-generic #27-Ubuntu SMP PREEMPT_DYNAMIC Wed Nov 23 20:44:15 UTC 2022 x86_64 x86_64 x86_64 GNU/Linux
 rustc 1.66.0 (69f9c33d7 2022-12-12)
 binary: rustc
 commit-hash: 69f9c33d71c871fc16ac445211281c6e7a340943
