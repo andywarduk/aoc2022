@@ -1,4 +1,4 @@
-	Command being timed: "target/release/day11"
+	Command being timed: "target/release/day18"
 	User time (seconds): 0.01
 	System time (seconds): 0.00
 	Percent of CPU this job got: 100%
@@ -7,10 +7,10 @@
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 2012
+	Maximum resident set size (kbytes): 4740
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 91
+	Minor (reclaiming a frame) page faults: 1267
 	Voluntary context switches: 1
 	Involuntary context switches: 0
 	Swaps: 0
@@ -21,3 +21,4 @@
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
+Linux 5.19.0-26-generic #27-Ubuntu SMP PREEMPT_DYNAMIC Wed Nov 23 20:44:15 UTC 2022 x86_64 x86_64 x86_64 GNU/Linux

@@ -14,4 +14,28 @@ daypad="$(printf %02d $1)"
 
 cargo build --release --bin day$daypad --quiet
 
-\time -v -o stats/day$daypad.txt target/release/day$daypad
+if [ $? -ne 0 ]
+then
+	echo "Build failed"
+	exit 2
+fi
+
+case "x$(uname)" in
+"xLinux")
+	flags="-v"
+	outadd="linux"
+	uname=$(uname -srvmpio)
+	;;
+"xDarwin")
+	flags="-l"
+	outadd="macos"
+	uname=$(uname -mprsv)
+	;;
+*)
+	echo "Unrecognised arch"
+	exit 3
+esac
+
+outfile=stats/day$daypad-$outadd.txt
+\time $flags -o "$outfile" target/release/day$daypad
+echo $uname >> "$outfile"
