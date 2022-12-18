@@ -1,7 +1,6 @@
-Darwin 21.6.0 Darwin Kernel Version 21.6.0: Thu Sep 29 20:12:57 PDT 2022; root:xnu-8020.240.7~1/RELEASE_X86_64 x86_64 i386
 Part 1: 6367
 Part 2: 2536
-        0.07 real         0.00 user         0.00 sys
+        0.09 real         0.00 user         0.00 sys
              1212416  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
@@ -15,10 +14,12 @@ Part 2: 2536
                    0  messages received
                    0  signals received
                    1  voluntary context switches
-                   3  involuntary context switches
-            26898595  instructions retired
-            14164551  cycles elapsed
+                   7  involuntary context switches
+            26762133  instructions retired
+            13951086  cycles elapsed
               712704  peak memory footprint
+------------------------------------------
+Darwin 21.6.0 Darwin Kernel Version 21.6.0: Thu Sep 29 20:12:57 PDT 2022; root:xnu-8020.240.7~1/RELEASE_X86_64 x86_64 i386
 rustc 1.67.0-nightly (95a3a7277 2022-10-31)
 binary: rustc
 commit-hash: 95a3a7277b44bbd2dd3485703d9a05f64652b60e
