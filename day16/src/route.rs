@@ -17,20 +17,25 @@ impl Route {
 
     /// Pretty prints the route
     pub fn print(&self, xref: &XRef, map: &FloydWarshall) {
-        let mut loc = xref.index_for_valve(START_ROOM);
+        println!("{}", self.pretty(xref, map))
+    }
 
-        print!("{START_ROOM}");
+    /// Formats the route
+    pub fn pretty(&self, xref: &XRef, map: &FloydWarshall) -> String {
+        let mut result = START_ROOM.to_string();
+
+        let mut loc = xref.index_for_valve(START_ROOM);
 
         for p in self.0.iter() {
             for r in map.path_idx(loc, *p).iter().skip(1) {
-                print!(" {}", xref.valve_for_index(*r));
+                result += &format!(" {}", xref.valve_for_index(*r));
             }
 
-            print!(" (open)");
+            result += " (open)";
 
             loc = *p;
         }
 
-        println!();
+        result
     }
 }

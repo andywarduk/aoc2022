@@ -91,15 +91,19 @@ pub fn part2(
     dist_map: &FloydWarshall,
     valves: &[u8],
 ) -> (usize, Route, Route) {
-    // Solutions vector
+    // Solutions vectors
     let mut solutions = Vec::new();
+    let mut sol_valve_mask = Vec::new(); // Separate to improved cache-locality in the nested loop
 
     // Callback function to add a solution to the solutions vector
-    let mut solution = |state: &WalkState| {
+    let mut add_solution = |state: &WalkState| {
         let total = state.released + (state.time_left as usize * state.rate);
 
+        // Add route bitmask
+        sol_valve_mask.push(state.route.mask());
+
+        // Add solution
         solutions.push(Sol2 {
-            valve_mask: state.route.mask(),
             route: state.route.clone(),
             released: total,
         });
@@ -109,33 +113,32 @@ pub fn part2(
     let state = WalkState::new(xref.index_for_valve(START_ROOM), valves.to_vec(), 26);
 
     // Walk the routes
-    walk(input, dist_map, state, &mut solution);
+    walk(input, dist_map, state, &mut add_solution);
 
-    // Bet combination details
+    // Best combination details
     let mut best = 0;
     let mut me_route = None;
     let mut ele_route = None;
 
     // Walk solutions for me
     for me in 0..solutions.len() {
-        let me_sol = &solutions[me];
-        let me_mask = me_sol.valve_mask;
+        let me_mask = sol_valve_mask[me];
 
         // Walk elephant solutions (from me + 1) which cover a separate set of rooms
-        for ele_sol in solutions
-            .iter()
-            .skip(me + 1)
-            .filter(|ele_sol| me_mask & ele_sol.valve_mask == 0)
-        {
-            // Calculate total
-            let total = me_sol.released + ele_sol.released;
+        for ele in (me + 1)..solutions.len() {
+            let ele_mask = sol_valve_mask[ele];
 
-            // Check against the best
-            if total > best {
-                // Best so far
-                best = total;
-                me_route = Some(&me_sol.route);
-                ele_route = Some(&ele_sol.route);
+            if me_mask & ele_mask == 0 {
+                // Calculate total
+                let total = solutions[me].released + solutions[ele].released;
+
+                // Check against the best
+                if total > best {
+                    // Best so far
+                    best = total;
+                    me_route = Some(&solutions[me].route);
+                    ele_route = Some(&solutions[ele].route);
+                }
             }
         }
     }
@@ -166,7 +169,6 @@ struct Sol1 {
 }
 
 struct Sol2 {
-    valve_mask: u64,
     released: usize,
     route: Route,
 }
@@ -230,10 +232,16 @@ Valve JJ has flow rate=21; tunnel leads to valve II
         let dist_map = FloydWarshall::new(&input, &xref);
         let valves = interesting_valves(&input, &xref);
 
-        let (best1, _) = part1(&input, &xref, &dist_map, &valves);
+        let (best1, route1) = part1(&input, &xref, &dist_map, &valves);
+        let pretty1 = route1.pretty(&xref, &dist_map);
         assert_eq!(best1, 1651);
+        assert_eq!(pretty1, "AA DD (open) AA BB (open) AA II JJ (open) II AA DD EE FF GG HH (open) GG FF EE (open) DD CC (open)");
 
-        let (best2, _, _) = part2(&input, &xref, &dist_map, &valves);
+        let (best2, route2_1, route2_2) = part2(&input, &xref, &dist_map, &valves);
+        let pretty2_1 = route2_1.pretty(&xref, &dist_map);
+        let pretty2_2 = route2_2.pretty(&xref, &dist_map);
         assert_eq!(best2, 1707);
+        assert_eq!(pretty2_1, "AA DD (open) EE FF GG HH (open) GG FF EE (open)");
+        assert_eq!(pretty2_2, "AA II JJ (open) II AA BB (open) CC (open)");
     }
 }
