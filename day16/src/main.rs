@@ -121,20 +121,21 @@ pub fn part2(
         let me_sol = &solutions[me];
         let me_mask = me_sol.valve_mask;
 
-        // Walk elephant solutions (from me + 1)
-        for ele_sol in solutions.iter().skip(me + 1) {
-            // Make sure solutions cover separate set of rooms
-            if me_mask & ele_sol.valve_mask == 0 {
-                // calculate total
-                let total = me_sol.released + ele_sol.released;
+        // Walk elephant solutions (from me + 1) which cover a separate set of rooms
+        for ele_sol in solutions
+            .iter()
+            .skip(me + 1)
+            .filter(|ele_sol| me_mask & ele_sol.valve_mask == 0)
+        {
+            // Calculate total
+            let total = me_sol.released + ele_sol.released;
 
-                // Check against the best
-                if total > best {
-                    // Best so far
-                    best = total;
-                    me_route = Some(&me_sol.route);
-                    ele_route = Some(&ele_sol.route);
-                }
+            // Check against the best
+            if total > best {
+                // Best so far
+                best = total;
+                me_route = Some(&me_sol.route);
+                ele_route = Some(&ele_sol.route);
             }
         }
     }
