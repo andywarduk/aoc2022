@@ -1,20 +1,55 @@
-Part 1: 1009
-Part 2: 18816
+Part 1:
+  1 => 3 : 2:Ore 4:Ore 5:Ore 6:Clay 7:Clay 8:Clay 9:Clay 10:Clay 11:Clay 12:Clay 13:Obsidian 15:Obsidian 18:Obsidian 20:Geode
+  2 => 1 : 3:Ore 5:Clay 7:Clay 8:Clay 10:Clay 11:Clay 14:Obsidian 15:Clay 16:Clay 17:Obsidian 20:Obsidian 22:Geode
+  3 => 2 : 4:Clay 8:Clay 13:Obsidian 19:Obsidian 21:Geode
+  4 => 6 : 3:Ore 5:Ore 7:Clay 8:Clay 10:Clay 11:Clay 12:Obsidian 14:Obsidian 16:Obsidian 18:Obsidian 19:Geode 21:Geode
+  5 => 0 : None
+  6 => 13 : 3:Ore 6:Clay 7:Ore 9:Clay 10:Clay 12:Obsidian 13:Obsidian 14:Ore 15:Obsidian 16:Obsidian 17:Geode 18:Obsidian 19:Geode 20:Obsidian 21:Geode 22:Geode
+  7 => 6 : 2:Ore 4:Ore 5:Clay 6:Clay 7:Clay 8:Clay 9:Clay 10:Obsidian 11:Clay 12:Obsidian 13:Obsidian 14:Obsidian 16:Obsidian 18:Geode 22:Geode
+  8 => 3 : 3:Clay 6:Clay 12:Obsidian 13:Clay 17:Obsidian 20:Geode
+  9 => 1 : 3:Clay 6:Clay 9:Clay 12:Obsidian 17:Obsidian 22:Geode
+  10 => 2 : 3:Ore 5:Ore 7:Clay 8:Ore 9:Clay 10:Clay 11:Clay 12:Clay 13:Clay 14:Clay 15:Obsidian 17:Obsidian 21:Geode
+  11 => 7 : 3:Ore 5:Clay 7:Clay 8:Clay 11:Obsidian 12:Clay 13:Obsidian 15:Obsidian 17:Obsidian 18:Geode 21:Geode
+  12 => 0 : None
+  13 => 2 : 2:Ore 4:Ore 5:Ore 6:Clay 7:Clay 8:Clay 9:Clay 10:Clay 11:Clay 12:Clay 13:Obsidian 14:Clay 16:Obsidian 18:Obsidian 21:Geode
+  14 => 0 : None
+  15 => 1 : 3:Ore 5:Ore 7:Clay 8:Clay 10:Clay 11:Clay 13:Obsidian 14:Clay 15:Clay 16:Obsidian 18:Obsidian 20:Obsidian 22:Geode
+  16 => 1 : 3:Ore 5:Ore 7:Clay 8:Ore 9:Clay 10:Clay 11:Clay 12:Clay 13:Clay 14:Clay 15:Obsidian 17:Obsidian 20:Obsidian 22:Geode
+  17 => 2 : 2:Ore 4:Ore 5:Ore 6:Clay 7:Clay 8:Clay 9:Clay 10:Clay 12:Obsidian 13:Clay 14:Clay 15:Obsidian 17:Obsidian 21:Geode
+  18 => 0 : None
+  19 => 0 : None
+  20 => 0 : None
+  21 => 0 : None
+  22 => 0 : None
+  23 => 6 : 4:Ore 7:Clay 9:Clay 11:Clay 12:Obsidian 14:Obsidian 15:Obsidian 17:Obsidian 19:Geode 21:Geode
+  24 => 3 : 2:Ore 4:Ore 5:Ore 6:Clay 7:Clay 8:Clay 9:Clay 10:Clay 11:Clay 12:Clay 13:Obsidian 15:Obsidian 17:Obsidian 20:Geode
+  25 => 1 : 2:Ore 4:Ore 5:Ore 6:Clay 7:Clay 8:Clay 9:Clay 10:Clay 11:Clay 12:Clay 13:Obsidian 14:Clay 15:Clay 16:Obsidian 17:Clay 18:Obsidian 20:Obsidian 22:Geode
+  26 => 3 : 4:Clay 8:Clay 13:Obsidian 18:Obsidian 20:Geode
+  27 => 1 : 3:Clay 6:Clay 9:Clay 12:Clay 14:Obsidian 18:Obsidian 22:Geode
+  28 => 1 : 4:Clay 8:Clay 14:Obsidian 15:Clay 20:Obsidian 22:Geode
+  29 => 5 : 4:Ore 6:Clay 8:Clay 9:Clay 12:Obsidian 13:Clay 14:Clay 15:Obsidian 17:Obsidian 19:Geode 20:Obsidian 22:Geode
+  30 => 4 : 4:Clay 8:Clay 11:Obsidian 14:Obsidian 19:Geode
+  Result: 1009
+Part 2:
+  1 => 32 : 2:Ore 4:Ore 5:Ore 6:Clay 7:Clay 8:Clay 9:Clay 10:Clay 11:Clay 12:Clay 13:Obsidian 14:Clay 15:Obsidian 16:Clay 17:Obsidian 19:Obsidian 20:Geode 21:Obsidian 23:Geode 24:Obsidian 25:Geode 27:Geode 28:Obsidian 29:Geode 30:Geode
+  2 => 21 : 3:Ore 5:Clay 7:Ore 8:Clay 9:Clay 10:Clay 11:Clay 12:Clay 13:Clay 14:Obsidian 15:Clay 16:Clay 17:Obsidian 19:Obsidian 20:Clay 21:Obsidian 22:Geode 23:Obsidian 25:Geode 26:Obsidian 27:Geode 29:Geode
+  3 => 28 : 4:Ore 7:Ore 9:Clay 10:Clay 11:Clay 13:Clay 14:Clay 15:Clay 17:Obsidian 18:Obsidian 19:Obsidian 21:Obsidian 22:Geode 23:Obsidian 24:Geode 26:Geode 27:Geode 28:Obsidian 29:Geode 30:Geode
+  Result: 18816
 	Command being timed: "target/release/day19"
-	User time (seconds): 1.19
+	User time (seconds): 1.17
 	System time (seconds): 0.00
 	Percent of CPU this job got: 100%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.19
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.17
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 3236
+	Maximum resident set size (kbytes): 3176
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 249
+	Minor (reclaiming a frame) page faults: 246
 	Voluntary context switches: 1
-	Involuntary context switches: 3
+	Involuntary context switches: 1
 	Swaps: 0
 	File system inputs: 0
 	File system outputs: 0
