@@ -14,46 +14,31 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn part1(input: &[Monkey]) -> EqnNum {
-    let (mut ansmap, mut eqns) =
-        input
-            .iter()
-            .fold((HashMap::new(), Vec::new()), |(mut ansmap, mut eqns), m| {
-                match m.act {
-                    Action::Number(n) => {
-                        ansmap.insert(m.name.clone(), n);
-                    }
-                    Action::Eqn(_, _, _) => eqns.push(m),
-                }
+    // Build hashmap from input
+    let eqns = input
+        .iter()
+        .map(|i| (i.name.clone(), i))
+        .collect::<HashMap<_, _>>();
 
-                (ansmap, eqns)
-            });
+    // Compute
+    calc_monkey(&eqns, "root")
+}
 
-    loop {
-        eqns.retain(|e| match &e.act {
-            Action::Eqn(a, op, b) => match (ansmap.get(a), ansmap.get(b)) {
-                (Some(anum), Some(bnum)) => {
-                    let res = match op {
-                        Op::Add => anum + bnum,
-                        Op::Sub => anum - bnum,
-                        Op::Div => anum / bnum,
-                        Op::Mul => anum * bnum,
-                    };
+fn calc_monkey(monkeys: &HashMap<String, &Monkey>, elem: &str) -> EqnNum {
+    match &monkeys[elem].act {
+        Action::Number(n) => *n,
+        Action::Eqn(a, op, b) => {
+            let anum = calc_monkey(monkeys, a);
+            let bnum = calc_monkey(monkeys, b);
 
-                    ansmap.insert(e.name.clone(), res);
-
-                    false
-                }
-                _ => true,
-            },
-            _ => unreachable!(),
-        });
-
-        if eqns.is_empty() {
-            break;
+            match op {
+                Op::Add => anum + bnum,
+                Op::Sub => anum - bnum,
+                Op::Div => anum / bnum,
+                Op::Mul => anum * bnum,
+            }
         }
     }
-
-    *ansmap.get("root").expect("No root value found")
 }
 
 fn part2(input: &[Monkey]) -> EqnNum {
@@ -184,7 +169,7 @@ fn find_term(terms: &[Term], t: &str) -> usize {
     terms
         .iter()
         .position(|term| term.name == *t)
-        .expect("Tern not found")
+        .expect("Term not found")
 }
 
 fn back_calc(terms: &Vec<Term>, idx: usize, acc: EqnNum) -> TermVal {
@@ -250,13 +235,13 @@ enum TermVal {
 
 type EqnNum = u64;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Monkey {
     name: String,
     act: Action,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Action {
     Number(EqnNum),
     Eqn(String, Op, String),
