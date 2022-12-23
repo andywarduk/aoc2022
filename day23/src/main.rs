@@ -67,24 +67,34 @@ enum Dir {
 #[derive(Clone)]
 struct Elves {
     elves: Vec<Elf>,
+    pos_map: HashMap<(isize, isize), usize>,
     move_pref: VecDeque<Dir>,
 }
 
 impl Elves {
     fn build(input: Vec<InputEnt>) -> Self {
+        let elves = input
+            .iter()
+            .enumerate()
+            .fold(Vec::new(), |elves, (y, row)| {
+                row.iter()
+                    .enumerate()
+                    .filter(|(_, elf)| **elf)
+                    .fold(elves, |mut elves, (x, _)| {
+                        elves.push(Elf::new(x as isize, y as isize));
+                        elves
+                    })
+            });
+
+        let pos_map = elves
+            .iter()
+            .enumerate()
+            .map(|(i, e)| ((e.x, e.y), i))
+            .collect();
+
         Self {
-            elves: input
-                .iter()
-                .enumerate()
-                .fold(Vec::new(), |elves, (y, row)| {
-                    row.iter().enumerate().filter(|(_, elf)| **elf).fold(
-                        elves,
-                        |mut elves, (x, _)| {
-                            elves.push(Elf::new(x as isize, y as isize));
-                            elves
-                        },
-                    )
-                }),
+            elves,
+            pos_map,
             move_pref: vec![Dir::N, Dir::S, Dir::W, Dir::E].into(),
         }
     }
@@ -94,7 +104,7 @@ impl Elves {
         let moves = self
             .iter()
             .map(|elf| {
-                let adjacent = elf.adjacent(&self);
+                let adjacent = elf.adjacent(&self.pos_map);
 
                 if adjacent.is_empty() {
                     None
@@ -133,15 +143,19 @@ impl Elves {
             .collect::<Vec<_>>();
 
         // Count position clashes
-        let pos_map = new_pos.iter().fold(HashMap::new(), |mut pos_map, p| {
+        let new_pos_map = new_pos.iter().fold(HashMap::new(), |mut pos_map, p| {
             *(pos_map.entry(*p).or_insert(0)) += 1;
             pos_map
         });
 
         // Move the elves
-        for (i, pos) in new_pos.iter().enumerate() {
-            if *pos_map.get(pos).unwrap() == 1 {
+        for (i, pos) in new_pos.into_iter().enumerate() {
+            if *new_pos_map.get(&pos).unwrap() == 1 {
+                self.pos_map
+                    .remove(&(self.elves[i].x, self.elves[i].y))
+                    .unwrap();
                 self.elves[i].move_to(pos.0, pos.1);
+                self.pos_map.insert(pos, i);
             }
         }
 
@@ -216,44 +230,25 @@ impl Elf {
         self.y = y;
     }
 
-    fn adjacent(&self, elves: &Elves) -> Vec<(Dir, usize)> {
-        elves
-            .iter()
-            .enumerate()
-            .filter_map(|(i, e)| {
-                if e.y == self.y - 1 {
-                    if e.x == self.x - 1 {
-                        Some((Dir::NW, i))
-                    } else if e.x == self.x {
-                        Some((Dir::N, i))
-                    } else if e.x == self.x + 1 {
-                        Some((Dir::NE, i))
-                    } else {
-                        None
-                    }
-                } else if e.y == self.y {
-                    if e.x == self.x - 1 {
-                        Some((Dir::W, i))
-                    } else if e.x == self.x + 1 {
-                        Some((Dir::E, i))
-                    } else {
-                        None
-                    }
-                } else if e.y == self.y + 1 {
-                    if e.x == self.x - 1 {
-                        Some((Dir::SW, i))
-                    } else if e.x == self.x {
-                        Some((Dir::S, i))
-                    } else if e.x == self.x + 1 {
-                        Some((Dir::SE, i))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
+    fn adjacent(&self, pos_map: &HashMap<(isize, isize), usize>) -> Vec<(Dir, usize)> {
+        let mut adjacent = Vec::new();
+
+        let mut test = |x, y, dir| {
+            if let Some(elem) = pos_map.get(&(x, y)) {
+                adjacent.push((dir, *elem));
+            }
+        };
+
+        test(self.x - 1, self.y - 1, Dir::NW);
+        test(self.x, self.y - 1, Dir::N);
+        test(self.x + 1, self.y - 1, Dir::NE);
+        test(self.x - 1, self.y, Dir::W);
+        test(self.x + 1, self.y, Dir::E);
+        test(self.x - 1, self.y + 1, Dir::SW);
+        test(self.x, self.y + 1, Dir::S);
+        test(self.x + 1, self.y + 1, Dir::SE);
+
+        adjacent
     }
 }
 

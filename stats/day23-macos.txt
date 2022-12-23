@@ -1,11 +1,11 @@
 Part 1: 3920
 Part 2: 889
-        6.90 real         6.77 user         0.00 sys
-             1462272  maximum resident set size
+        1.00 real         0.87 user         0.00 sys
+             1843200  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                 477  page reclaims
+                 570  page reclaims
                    0  page faults
                    0  swaps
                    0  block input operations
@@ -14,10 +14,10 @@ Part 2: 889
                    0  messages received
                    0  signals received
                    1  voluntary context switches
-                 131  involuntary context switches
-         90851661719  instructions retired
-         26469188294  cycles elapsed
-              962560  peak memory footprint
+                  85  involuntary context switches
+          8506489467  instructions retired
+          3355678356  cycles elapsed
+             1335296  peak memory footprint
 ------------------------------------------
 Darwin 21.6.0 Darwin Kernel Version 21.6.0: Thu Sep 29 20:12:57 PDT 2022; root:xnu-8020.240.7~1/RELEASE_X86_64 x86_64 i386
 rustc 1.67.0-nightly (95a3a7277 2022-10-31)
