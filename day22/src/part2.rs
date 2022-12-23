@@ -12,8 +12,6 @@ pub fn part2(
     let map = Map::new(input, cell_width, edge_map);
     let mut state = State::new(&map);
 
-    println!("{:?}", map.edges);
-
     for i in instructions {
         state.apply(i, &map);
     }
@@ -70,7 +68,6 @@ impl State {
                             }
                         }
                     }
-                    println!("{:?}", self);
                 }
             }
             Instruction::Left => {
@@ -80,7 +77,6 @@ impl State {
                     Dir::Left => Dir::Down,
                     Dir::Up => Dir::Left,
                 };
-                println!("{:?}", self);
             }
             Instruction::Right => {
                 self.dir = match self.dir {
@@ -89,7 +85,6 @@ impl State {
                     Dir::Left => Dir::Up,
                     Dir::Up => Dir::Right,
                 };
-                println!("{:?}", self);
             }
         }
     }

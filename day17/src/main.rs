@@ -182,7 +182,7 @@ struct MapEntry {
 
 // Input parsing
 
-type InputEnt = Vec<Dir>; // TODO
+type InputEnt = Vec<Dir>;
 
 fn input_transform(line: String) -> InputEnt {
     line.chars()

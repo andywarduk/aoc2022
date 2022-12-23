@@ -56,13 +56,11 @@ impl Map {
         };
 
         loop {
-            //println!("edge {} {} {:?}", x, y, dir);
             // Add the edge
             edges.push(Edge::new(x, y, dir, cell_width));
 
             // Move to new position
             (x, y) = next_pos(x, y, dir, cell_width - 1);
-            //           println!("mv {} {} {:?}", x, y, dir);
 
             if x == startx && y == starty {
                 break;
@@ -82,7 +80,7 @@ impl Map {
                 .find_map(|(xadd, yadd, d)| {
                     let chkx = x + xadd;
                     let chky = y + yadd;
-                    //                    println!("chk {} {} {:?}", chkx, chky, d);
+
                     if Self::get_tile_internal(&rows, chkx, chky) == Tile::Void {
                         None
                     } else {
@@ -197,11 +195,9 @@ impl Map {
 
         let out_edge = out_edge.expect("Out edge not found");
         let out_intersect = out_edge.intersect(x, y).unwrap();
-        println!("out {:?} @ {}", out_edge, out_intersect);
 
         let in_edge = &self.edges[out_edge.pair];
         let in_intersect = self.cell_width as isize - 1 - out_intersect;
-        println!("in {:?} @ {}", in_edge, in_intersect);
 
         match in_edge.dir {
             Dir::Up => (in_edge.x1, in_edge.y1 - in_intersect, Dir::Right),
