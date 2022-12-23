@@ -23,9 +23,18 @@ cp -R template "$dir"
 
 find "$dir" -type f -print | while read file
 do
-    sed -i "s/\$day/$day/g" "$file"
-    sed -i "s/\$daypad/$daypad/g" "$file"
-    sed -i "s/\$dir/$dir/g" "$file"
+    case $(uname) in
+    Darwin)
+        sed -i '' "s/\$day/$day/g" "$file"
+        sed -i '' "s/\$daypad/$daypad/g" "$file"
+        sed -i '' "s/\$dir/$dir/g" "$file"
+        ;;
+    *)
+        sed -i "s/\$day/$day/g" "$file"
+        sed -i "s/\$daypad/$daypad/g" "$file"
+        sed -i "s/\$dir/$dir/g" "$file"
+        ;;
+    esac
 done
 
 echo "!!! Add to main Cargo.toml !!!"
