@@ -126,7 +126,7 @@ Each geode robot costs 3 ore and 12 obsidian.
         let static_state = SimParms::new(&input[1], 24);
         let res = simulate(&static_state);
         println!("{:?}", res.builds);
-        assert_eq!(res.best * 2, 12);
+        assert_eq!(res.best, 12);
     }
 
     #[test]

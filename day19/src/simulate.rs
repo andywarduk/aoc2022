@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use crate::InputEnt;
 
-pub type MineralQty = u8;
+pub type MineralQty = u16;
 pub type RobotQty = u8;
 pub type TimeQty = u8;
 
