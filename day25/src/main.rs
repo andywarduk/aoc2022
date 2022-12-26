@@ -53,8 +53,6 @@ fn build_snafu(mut num: isize) -> String {
     let mut pow = 1;
     let mut loops = 1;
 
-    println!("-> {num}");
-
     loop {
         if num / pow <= 2 {
             break;
@@ -70,8 +68,6 @@ fn build_snafu(mut num: isize) -> String {
         let mut digit = num / pow;
         let rem = num % pow;
 
-        println!("{digit} {rem} {num} {pow}");
-
         if !check_remainder(rem, pow) {
             if rem > 0 {
                 digit += 1
@@ -79,8 +75,6 @@ fn build_snafu(mut num: isize) -> String {
                 digit -= 1
             }
         }
-
-        println!("{digit} {rem} {num} {pow}");
 
         match digit {
             2 => result.push('2'),
@@ -94,8 +88,6 @@ fn build_snafu(mut num: isize) -> String {
         num -= digit * pow;
         pow /= 5;
     }
-
-    println!("<- {result}");
 
     result
 }
