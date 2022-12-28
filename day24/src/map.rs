@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashSet};
+use std::{cmp::Ordering, collections::HashMap};
 
 use crate::{
     dir::Dir,
@@ -10,7 +10,7 @@ use crate::{
 pub struct Map {
     pub width: usize,
     pub height: usize,
-    pub blizzards: Vec<HashSet<Pos>>,
+    pub blizzards: Vec<HashMap<Pos, usize>>,
     pub entry: Pos,
     pub exit: Pos,
 }
@@ -71,13 +71,11 @@ impl Map {
         let mut blizzards = Vec::with_capacity(repeat);
 
         for _ in 0..repeat {
-            // Add blizzard map to the vector
-            blizzards.push(
-                blizzard_pos
-                    .iter()
-                    .map(|b| b.pos.clone())
-                    .collect::<HashSet<_>>(),
-            );
+            // Add blizzard map to the set vector
+            blizzards.push(blizzard_pos.iter().fold(HashMap::new(), |mut map, b| {
+                *map.entry(b.pos.clone()).or_insert(0) += 1;
+                map
+            }));
 
             // Move blizzards
             (0..blizzard_pos.len()).for_each(|i| {
