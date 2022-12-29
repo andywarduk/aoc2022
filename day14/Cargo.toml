@@ -9,3 +9,15 @@ edition = "2021"
 aoc = { path = "../aoc" }
 prng_mt = "0.1.0"
 lazy_static = "1.4.0"
+
+[lib]
+name = "day14lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "day14"
+path = "src/main.rs"
+
+[[bin]]
+name = "day14vis"
+path = "src/vis.rs"
