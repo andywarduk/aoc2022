@@ -8,3 +8,15 @@ edition = "2021"
 [dependencies]
 aoc = { path = "../aoc" }
 lazy_static = "1.4.0"
+
+[[bin]]
+name = "day24"
+path = "src/main.rs"
+
+[[bin]]
+name = "day24vis"
+path = "src/vis.rs"
+
+[lib]
+name = "day24lib"
+path = "src/lib.rs"
