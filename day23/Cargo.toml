@@ -7,3 +7,15 @@ edition = "2021"
 
 [dependencies]
 aoc = { path = "../aoc" }
+
+[lib]
+name = "day23lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "day23"
+path = "src/main.rs"
+
+[[bin]]
+name = "day23vis"
+path = "src/vis.rs"
