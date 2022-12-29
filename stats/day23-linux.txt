@@ -1,20 +1,20 @@
 Part 1: 3920
 Part 2: 889
 	Command being timed: "target/release/day23"
-	User time (seconds): 5.58
-	System time (seconds): 0.01
+	User time (seconds): 0.62
+	System time (seconds): 0.00
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:05.59
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.62
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 2216
+	Maximum resident set size (kbytes): 2492
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 23518
+	Minor (reclaiming a frame) page faults: 507
 	Voluntary context switches: 1
-	Involuntary context switches: 35
+	Involuntary context switches: 1
 	Swaps: 0
 	File system inputs: 0
 	File system outputs: 0
