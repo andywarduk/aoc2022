@@ -135,6 +135,10 @@ impl Gif {
         // Create the next frame
         let frame = Frame {
             delay: max(2, delay),
+            width: 1,
+            height: 1,
+            transparent: Some(0),
+            buffer: Cow::Owned(vec![0]),
             ..Default::default()
         };
 

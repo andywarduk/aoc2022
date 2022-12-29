@@ -136,6 +136,10 @@ impl Elves {
         self.elves.iter()
     }
 
+    pub fn get_elf(&self, i: usize) -> &Elf {
+        &self.elves[i]
+    }
+
     pub fn len(&self) -> usize {
         self.elves.len()
     }

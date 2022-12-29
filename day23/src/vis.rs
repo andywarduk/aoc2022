@@ -79,24 +79,55 @@ fn vis(
     let draw_frame = |gif: &mut Gif, elves: &Elves| -> Result<(), Box<dyn Error>> {
         let mut frame = vec![vec![0; width as usize]; height as usize];
 
-        let age_max = elves
+        let colour_split = elves.len() as f64 / (COLOURS - 1) as f64;
+
+        // Sort elves by age
+        let mut ages = elves
             .iter()
-            .map(|e| elves.rounds() - e.last_move_round)
-            .max()
-            .unwrap();
+            .enumerate()
+            .map(|(i, e)| (elves.rounds() - e.last_move_round, i))
+            .collect::<Vec<_>>();
 
-        let age_step = age_max as f64 / (COLOURS - 1) as f64;
+        ages.sort();
 
-        for e in elves.iter() {
-            let move_age = if age_step == 0f64 {
-                0f64
-            } else {
-                (elves.rounds() - e.last_move_round) as f64 / age_step
-            };
-            let colour = move_age as u8 + 1;
-            assert!(colour >= 1 && colour <= COLOURS as u8);
-            frame[(e.y - miny) as usize][(e.x - minx) as usize] = colour;
+        let mut last_age = 0;
+        let mut colour = 1;
+        let mut count = 0;
+
+        for (age, i) in ages {
+            if age != last_age {
+                last_age = age;
+                if count as f64 > colour_split {
+                    count = 0;
+                    colour += 1;
+                }
+            }
+
+            let elf = elves.get_elf(i);
+
+            frame[(elf.y - miny) as usize][(elf.x - minx) as usize] = colour;
+
+            count += 1;
         }
+
+        // let age_max = elves
+        //     .iter()
+        //     .map(|e| elves.rounds() - e.last_move_round)
+        //     .max()
+        //     .unwrap();
+
+        // let age_step = age_max as f64 / (COLOURS - 1) as f64;
+
+        // for e in elves.iter() {
+        //     let move_age = if age_step == 0f64 {
+        //         0f64
+        //     } else {
+        //         (elves.rounds() - e.last_move_round) as f64 / age_step
+        //     };
+        //     let colour = move_age as u8 + 1;
+        //     assert!(colour >= 1 && colour <= COLOURS as u8);
+        //     frame[(e.y - miny) as usize][(e.x - minx) as usize] = colour;
+        // }
 
         gif.draw_frame(frame, 2)?;
 
