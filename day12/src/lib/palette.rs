@@ -1,6 +1,9 @@
+use lab::Lab;
 use lazy_static::lazy_static;
 
-const MIN_COLOUR_COMPONENT: u8 = 32;
+const COLOUR_STEP: u8 = 6;
+const COLOUR_MAX: u8 = 255;
+const MIN_COLOUR_COMPONENT: u8 = COLOUR_MAX - (26 * COLOUR_STEP);
 
 lazy_static! {
     /// GIF colour palette
@@ -8,15 +11,31 @@ lazy_static! {
         .flat_map(|i| {
             (0..26)
                 .map(|j| {
-                    let val1 = MIN_COLOUR_COMPONENT + (((255 - MIN_COLOUR_COMPONENT) / 26) * j);
-                    let val2 = MIN_COLOUR_COMPONENT + (((255 - MIN_COLOUR_COMPONENT) / 39) * j);
-                    let val3 = MIN_COLOUR_COMPONENT + (((255 - MIN_COLOUR_COMPONENT) / 52) * j);
+                    let val = MIN_COLOUR_COMPONENT + (COLOUR_STEP * j);
 
                     match i {
-                        0 => [0, val1, 0],    // Green (terrain)
-                        1 => [val1, 0, 0],    // Red (working)
-                        2 => [0, val2, val3], // Cyan (visited)
-                        3 => [val1, val1, 0], // Yellow (path)
+                        0 => [0, val, 0], // Green (terrain)
+                        1 => {
+                            // Red (working)
+                            let mut lab = Lab::from_rgb(&[0, val, 0]);
+                            lab.a = -lab.a; // Green <-> red axis
+                            lab.l += 5f32; // Lightness
+                            lab.to_rgb()
+                        }
+                        2 => {
+                            // Cyan (visited)
+                            let mut lab = Lab::from_rgb(&[0, val, 0]);
+                            lab.b = -(lab.b / 2f32); // Blue <-> yellow axis
+                            lab.to_rgb()
+                        }
+                        3 => {
+                            // Yellow (path)
+                            let mut lab = Lab::from_rgb(&[0, val, 0]);
+                            lab.a = 0f32; // Green <-> red axis
+                            lab.b = 128f32; // Blue <-> yellow axis
+                            lab.l += 15f32; // Lightness
+                            lab.to_rgb()
+                        }
                         _ => unreachable!(),
                     }
                 })
