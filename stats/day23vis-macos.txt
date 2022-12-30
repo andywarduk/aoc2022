@@ -1,23 +1,23 @@
 Calculating bounding box...
 Generating visualisation...
-        4.28 real         3.87 user         0.27 sys
-             2633728  maximum resident set size
+        4.20 real         3.67 user         0.36 sys
+             2822144  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                 761  page reclaims
-                   2  page faults
+                 809  page reclaims
+                   0  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                   5  voluntary context switches
-                 196  involuntary context switches
-         35572775219  instructions retired
-         16154419375  cycles elapsed
-             2109440  peak memory footprint
+                   3  voluntary context switches
+                 109  involuntary context switches
+         33967100422  instructions retired
+         15744102765  cycles elapsed
+             2281472  peak memory footprint
 ------------------------------------------
 Darwin 21.6.0 Darwin Kernel Version 21.6.0: Thu Sep 29 20:12:57 PDT 2022; root:xnu-8020.240.7~1/RELEASE_X86_64 x86_64 i386
 rustc 1.67.0-nightly (95a3a7277 2022-10-31)

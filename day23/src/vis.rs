@@ -1,5 +1,8 @@
 use std::error::Error;
 
+use hsl::HSL;
+use lazy_static::lazy_static;
+
 use aoc::{gif::Gif, input::parse_input_vec};
 
 use day23lib::{elves::Elves, input::input_transform};
@@ -17,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Generate visualisation
     println!("Generating visualisation...");
-    vis(minx, miny, maxx, maxy, elves2)?;
+    vis(minx - 1, miny - 1, maxx + 1, maxy + 1, elves2)?;
 
     Ok(())
 }
@@ -32,30 +35,34 @@ fn get_bbox(mut elves: Elves) -> (isize, isize, isize, isize) {
     elves.bbox()
 }
 
-const COLOURS: usize = 20;
-const COLOUR_PALETTE: [[u8; 3]; COLOURS + 1] = [
-    [0x00, 0x00, 0x00],
-    [0xe7, 0x1d, 0x43],
-    [0xff, 0x00, 0x00],
-    [0xff, 0x37, 0x00],
-    [0xff, 0x6e, 0x00],
-    [0xff, 0xa5, 0x00],
-    [0xff, 0xc3, 0x00],
-    [0xff, 0xe1, 0x00],
-    [0xff, 0xff, 0x00],
-    [0xaa, 0xd5, 0x00],
-    [0x55, 0xaa, 0x00],
-    [0x00, 0x80, 0x00],
-    [0x00, 0x55, 0x55],
-    [0x00, 0x2b, 0xaa],
-    [0x00, 0x00, 0xff],
-    [0x19, 0x00, 0xd5],
-    [0x32, 0x00, 0xac],
-    [0x4b, 0x00, 0x82],
-    [0x81, 0x2b, 0xa6],
-    [0xb8, 0x57, 0xca],
-    [0xd0, 0x3a, 0x87],
-];
+const COLOURS: usize = 240;
+const DELAY: u16 = 5;
+const FINAL_DELAY: u16 = 1000;
+
+lazy_static! {
+    /// GIF colour palette
+    pub static ref COLOUR_PALETTE: Vec<[u8; 3]> = {
+        // Add black first
+        [[0x00, 0x00, 0x00]].into_iter()
+            .chain(
+                // Rainbow colours, red to blue
+                (0..COLOURS)
+                    .map(|h| {
+                        let hsl = HSL {
+                            h: h as f64,
+                            s: 1_f64,
+                            l: 0.5_f64,
+                        };
+
+                        let (r,g,b) = hsl.to_rgb();
+
+                        [r, g, b]
+                    })
+            )
+            .chain([[0xff, 0x00, 0xff]].into_iter()) // Magenta on the end
+            .collect::<Vec<_>>()
+    };
+}
 
 fn vis(
     minx: isize,
@@ -79,67 +86,76 @@ fn vis(
     let draw_frame = |gif: &mut Gif, elves: &Elves| -> Result<(), Box<dyn Error>> {
         let mut frame = vec![vec![0; width as usize]; height as usize];
 
-        let colour_split = elves.len() as f64 / (COLOURS - 1) as f64;
+        let colour_split = elves.len() as f64 / COLOURS as f64;
 
-        // Sort elves by age
+        // Sort elves by rounds since last move
         let mut ages = elves
             .iter()
             .enumerate()
-            .map(|(i, e)| (elves.rounds() - e.last_move_round, i))
+            .map(|(i, e)| {
+                (
+                    match e.last_move_round {
+                        None => usize::MAX,
+                        Some(last) => elves.rounds() - last,
+                    },
+                    i,
+                )
+            })
             .collect::<Vec<_>>();
 
         ages.sort();
 
+        // Render loop variables
         let mut last_age = 0;
         let mut colour = 1;
-        let mut count = 0;
+        let mut count = 0f64;
 
+        // Render in age ascending order
         for (age, i) in ages {
             if age != last_age {
-                last_age = age;
-                if count as f64 > colour_split {
-                    count = 0;
-                    colour += 1;
+                // Age has changed
+                if age == usize::MAX {
+                    // Not moved at all yet - clamp to last colour
+                    colour = COLOURS as u8;
+                } else {
+                    // Work out colour for the next split
+                    while count > colour_split {
+                        count -= colour_split;
+                        colour += 1;
+                    }
                 }
+
+                // Update last age
+                last_age = age;
             }
 
+            // Get the elf
             let elf = elves.get_elf(i);
 
+            // Draw as a point
             frame[(elf.y - miny) as usize][(elf.x - minx) as usize] = colour;
 
-            count += 1;
+            // Increment count
+            count += 1f64;
         }
 
-        // let age_max = elves
-        //     .iter()
-        //     .map(|e| elves.rounds() - e.last_move_round)
-        //     .max()
-        //     .unwrap();
-
-        // let age_step = age_max as f64 / (COLOURS - 1) as f64;
-
-        // for e in elves.iter() {
-        //     let move_age = if age_step == 0f64 {
-        //         0f64
-        //     } else {
-        //         (elves.rounds() - e.last_move_round) as f64 / age_step
-        //     };
-        //     let colour = move_age as u8 + 1;
-        //     assert!(colour >= 1 && colour <= COLOURS as u8);
-        //     frame[(e.y - miny) as usize][(e.x - minx) as usize] = colour;
-        // }
-
-        gif.draw_frame(frame, 2)?;
+        // Render the frame
+        gif.draw_frame(frame, DELAY)?;
 
         Ok(())
     };
 
     loop {
+        // Draw frame
         draw_frame(&mut gif, &elves)?;
 
+        // Move the elves
         if elves.move_all() == 0 {
+            // Final frame
             draw_frame(&mut gif, &elves)?;
-            gif.delay(250)?;
+
+            // Delay
+            gif.delay(FINAL_DELAY)?;
 
             break;
         }

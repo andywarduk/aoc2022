@@ -6,7 +6,7 @@ use crate::dir::Dir;
 pub struct Elf {
     pub x: isize,
     pub y: isize,
-    pub last_move_round: usize,
+    pub last_move_round: Option<usize>,
 }
 
 impl Elf {
@@ -14,7 +14,7 @@ impl Elf {
         Self {
             x,
             y,
-            last_move_round: 0,
+            last_move_round: None,
         }
     }
 
@@ -24,7 +24,7 @@ impl Elf {
     }
 
     pub fn set_last_move_round(&mut self, round: usize) {
-        self.last_move_round = round;
+        self.last_move_round = Some(round);
     }
 
     pub fn adjacent(&self, pos_map: &HashMap<(isize, isize), usize>) -> Vec<(Dir, usize)> {
