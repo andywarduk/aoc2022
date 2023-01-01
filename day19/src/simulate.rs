@@ -62,13 +62,19 @@ impl SimResult {
         }
     }
 }
+
 /// Run simulation
 pub fn simulate(static_state: &SimParms) -> SimResult {
     let mut result = SimResult::default();
 
+    let robots = Robots {
+        ore: 1,
+        ..Default::default()
+    };
+
     let state = State {
-        ore_robots: 1,
-        ..State::default()
+        robots,
+        ..Default::default()
     };
 
     simulate_iter(state, static_state, &mut result);
@@ -77,47 +83,64 @@ pub fn simulate(static_state: &SimParms) -> SimResult {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-struct State {
-    time_used: TimeQty,
+struct Inventory {
     ore: MineralQty,
     clay: MineralQty,
     obsidian: MineralQty,
     geodes: MineralQty,
-    ore_robots: RobotQty,
-    clay_robots: RobotQty,
-    obsidian_robots: RobotQty,
-    geode_robots: RobotQty,
+}
+
+impl Inventory {
+    fn collect(&mut self, robots: &Robots) {
+        // Ore robot action
+        self.ore += robots.ore as MineralQty;
+
+        // Clay robot action
+        self.clay += robots.clay as MineralQty;
+
+        // Obsidian robot action
+        self.obsidian += robots.obsidian as MineralQty;
+
+        // Geode robot action
+        self.geodes += robots.geode as MineralQty;
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+struct Robots {
+    ore: RobotQty,
+    clay: RobotQty,
+    obsidian: RobotQty,
+    geode: RobotQty,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+struct State {
+    time_used: TimeQty,
+    inventory: Inventory,
+    robots: Robots,
     next_build: Build,
     builds: Vec<(TimeQty, Build)>,
 }
 
 fn simulate_iter(old_state: State, sim_parms: &SimParms, result: &mut SimResult) {
-    // Create new state
-    let mut upd_state = old_state.clone();
-
-    upd_state.time_used += 1;
+    // Update time used
+    let new_time_used = old_state.time_used + 1;
 
     // -- Collections --
 
-    // Ore robot action
-    upd_state.ore += old_state.ore_robots as MineralQty;
+    // Create new inventory
+    let mut upd_inventory = old_state.inventory.clone();
 
-    // Clay robot action
-    upd_state.clay += old_state.clay_robots as MineralQty;
-
-    // Obsidian robot action
-    upd_state.obsidian += old_state.obsidian_robots as MineralQty;
-
-    // Geode robot action
-    upd_state.geodes += old_state.geode_robots as MineralQty;
+    upd_inventory.collect(&old_state.robots);
 
     // Out of time?
-    if upd_state.time_used == sim_parms.time {
+    if new_time_used == sim_parms.time {
         // Best result yet?
-        if upd_state.geodes > result.best {
+        if upd_inventory.geodes > result.best {
             // Yes - update result
-            result.best = upd_state.geodes;
-            result.builds = upd_state.builds;
+            result.best = upd_inventory.geodes;
+            result.builds = old_state.builds;
         }
 
         return;
@@ -127,32 +150,38 @@ fn simulate_iter(old_state: State, sim_parms: &SimParms, result: &mut SimResult)
 
     // Geode robot
     let geode_built = if match old_state.next_build {
+        Build::Geode => true,
         Build::Any
-            if old_state.ore_robots > 0
-                && old_state.clay_robots > 0
-                && old_state.obsidian_robots > 0 =>
+            if old_state.robots.ore > 0
+                && old_state.robots.clay > 0
+                && old_state.robots.obsidian > 0 =>
         {
             true
         }
-        Build::Geode => true,
         _ => false,
     } {
-        let (built, next_state) = if old_state.ore >= sim_parms.blueprint.geode_robot_ore
-            && old_state.obsidian >= sim_parms.blueprint.geode_robot_obsidian
+        let (built, next_state) = if old_state.inventory.ore >= sim_parms.blueprint.geode_robot_ore
+            && old_state.inventory.obsidian >= sim_parms.blueprint.geode_robot_obsidian
         {
             // Build the robot
             let mut new_builds = old_state.builds.clone();
             new_builds.push((old_state.time_used, Build::Geode));
 
+            let mut new_inventory = upd_inventory.clone();
+            new_inventory.ore -= sim_parms.blueprint.geode_robot_ore;
+            new_inventory.obsidian -= sim_parms.blueprint.geode_robot_obsidian;
+
+            let mut new_robots = old_state.robots.clone();
+            new_robots.geode += 1;
+
             (
                 true,
                 State {
-                    ore: upd_state.ore - sim_parms.blueprint.geode_robot_ore,
-                    obsidian: upd_state.obsidian - sim_parms.blueprint.geode_robot_obsidian,
-                    geode_robots: old_state.geode_robots + 1,
+                    time_used: new_time_used,
+                    inventory: new_inventory,
+                    robots: new_robots,
                     next_build: Build::Any,
                     builds: new_builds,
-                    ..upd_state
                 },
             )
         } else {
@@ -160,8 +189,11 @@ fn simulate_iter(old_state: State, sim_parms: &SimParms, result: &mut SimResult)
             (
                 false,
                 State {
+                    time_used: new_time_used,
+                    inventory: upd_inventory.clone(),
+                    robots: old_state.robots.clone(),
                     next_build: Build::Geode,
-                    ..upd_state
+                    builds: old_state.builds.clone(),
                 },
             )
         };
@@ -176,38 +208,46 @@ fn simulate_iter(old_state: State, sim_parms: &SimParms, result: &mut SimResult)
     if !geode_built {
         // Obsidian robot
         if match old_state.next_build {
+            Build::Obsidian => true,
             Build::Any
-                if old_state.ore_robots > 0
-                    && old_state.clay_robots > 0
-                    && (old_state.obsidian_robots as MineralQty)
+                if old_state.robots.ore > 0
+                    && old_state.robots.clay > 0
+                    && (old_state.robots.obsidian as MineralQty)
                         < sim_parms.blueprint.geode_robot_obsidian =>
             {
                 true
             }
-            Build::Obsidian => true,
             _ => false,
         } {
-            let next_state = if old_state.ore >= sim_parms.blueprint.obsidian_robot_ore
-                && old_state.clay >= sim_parms.blueprint.obsidian_robot_clay
+            let next_state = if old_state.inventory.ore >= sim_parms.blueprint.obsidian_robot_ore
+                && old_state.inventory.clay >= sim_parms.blueprint.obsidian_robot_clay
             {
                 // Build the robot
                 let mut new_builds = old_state.builds.clone();
                 new_builds.push((old_state.time_used, Build::Obsidian));
 
+                let mut new_inventory = upd_inventory.clone();
+                new_inventory.ore -= sim_parms.blueprint.obsidian_robot_ore;
+                new_inventory.clay -= sim_parms.blueprint.obsidian_robot_clay;
+
+                let mut new_robots = old_state.robots.clone();
+                new_robots.obsidian += 1;
+
                 State {
-                    ore: upd_state.ore - sim_parms.blueprint.obsidian_robot_ore,
-                    clay: upd_state.clay - sim_parms.blueprint.obsidian_robot_clay,
-                    obsidian_robots: old_state.obsidian_robots + 1,
+                    time_used: new_time_used,
+                    inventory: new_inventory,
+                    robots: new_robots,
                     next_build: Build::Any,
                     builds: new_builds,
-                    ..upd_state
                 }
             } else {
                 // Wait for materials
                 State {
+                    time_used: new_time_used,
+                    inventory: upd_inventory.clone(),
+                    robots: old_state.robots.clone(),
                     next_build: Build::Obsidian,
                     builds: old_state.builds.clone(),
-                    ..upd_state
                 }
             };
 
@@ -216,33 +256,41 @@ fn simulate_iter(old_state: State, sim_parms: &SimParms, result: &mut SimResult)
 
         // Clay robot
         if match old_state.next_build {
+            Build::Clay => true,
             Build::Any
-                if (old_state.clay_robots as MineralQty)
+                if (old_state.robots.clay as MineralQty)
                     < sim_parms.blueprint.obsidian_robot_clay =>
             {
                 true
             }
-            Build::Clay => true,
             _ => false,
         } {
-            let next_state = if old_state.ore >= sim_parms.blueprint.clay_robot_ore {
+            let next_state = if old_state.inventory.ore >= sim_parms.blueprint.clay_robot_ore {
                 // Build the robot
                 let mut new_builds = old_state.builds.clone();
                 new_builds.push((old_state.time_used, Build::Clay));
 
+                let mut new_inventory = upd_inventory.clone();
+                new_inventory.ore -= sim_parms.blueprint.clay_robot_ore;
+
+                let mut new_robots = old_state.robots.clone();
+                new_robots.clay += 1;
+
                 State {
+                    time_used: new_time_used,
+                    inventory: new_inventory,
+                    robots: new_robots,
                     next_build: Build::Any,
-                    ore: upd_state.ore - sim_parms.blueprint.clay_robot_ore,
-                    clay_robots: old_state.clay_robots + 1,
                     builds: new_builds,
-                    ..upd_state
                 }
             } else {
                 // Wait for materials
                 State {
+                    time_used: new_time_used,
+                    inventory: upd_inventory.clone(),
+                    robots: old_state.robots.clone(),
                     next_build: Build::Clay,
                     builds: old_state.builds.clone(),
-                    ..upd_state
                 }
             };
 
@@ -251,28 +299,36 @@ fn simulate_iter(old_state: State, sim_parms: &SimParms, result: &mut SimResult)
 
         // Ore robot
         if match old_state.next_build {
-            Build::Any if (old_state.ore_robots as MineralQty) < sim_parms.max_ore => true,
             Build::Ore => true,
+            Build::Any if (old_state.robots.ore as MineralQty) < sim_parms.max_ore => true,
             _ => false,
         } {
-            let next_state = if old_state.ore >= sim_parms.blueprint.ore_robot_ore {
+            let next_state = if old_state.inventory.ore >= sim_parms.blueprint.ore_robot_ore {
                 // Build the robot
-                let mut new_builds = old_state.builds.clone();
+                let mut new_builds = old_state.builds;
                 new_builds.push((old_state.time_used, Build::Ore));
 
+                let mut new_inventory = upd_inventory;
+                new_inventory.ore -= sim_parms.blueprint.ore_robot_ore;
+
+                let mut new_robots = old_state.robots;
+                new_robots.ore += 1;
+
                 State {
+                    time_used: new_time_used,
+                    inventory: new_inventory,
+                    robots: new_robots,
                     next_build: Build::Any,
-                    ore: upd_state.ore - sim_parms.blueprint.ore_robot_ore,
-                    ore_robots: old_state.ore_robots + 1,
                     builds: new_builds,
-                    ..upd_state
                 }
             } else {
                 // Wait for materials
                 State {
+                    time_used: new_time_used,
+                    inventory: upd_inventory,
+                    robots: old_state.robots.clone(),
                     next_build: Build::Ore,
                     builds: old_state.builds,
-                    ..upd_state
                 }
             };
 
