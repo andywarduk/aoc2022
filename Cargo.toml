@@ -3,6 +3,7 @@ edition = "2021"
 authors = ["Andrew Ward (andy.ward.uk@gmail.com)"]
 
 [workspace]
+resolver = "2"
 
 members = [
     "aoc",
