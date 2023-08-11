@@ -59,7 +59,7 @@ lazy_static! {
                         [r, g, b]
                     })
             )
-            .chain([[0xff, 0x00, 0xff]].into_iter()) // Magenta on the end
+            .chain([[0xff, 0x00, 0xff]]) // Magenta on the end
             .collect::<Vec<_>>()
     };
 }
